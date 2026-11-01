@@ -5,6 +5,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>AeroSim — Client-Side WebGPU Wind Tunnel</title>
+    <script>
+      // Friendly protocol check: Detect if opened directly via file:///
+      if (window.location.protocol === 'file:') {
+        window.addEventListener('DOMContentLoaded', () => {
+          const banner = document.createElement('div');
+          banner.id = 'file-protocol-warning';
+          banner.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(11,16,27,0.96);z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:24px;text-align:center;';
+          banner.innerHTML = `
+            <div style="background:#1e293b; border:1px solid #f59e0b; border-radius:12px; padding:32px 40px; max-width:620px; box-shadow:0 20px 40px rgba(0,0,0,0.8);">
+              <div style="font-size:36px; margin-bottom:12px;">⚠️</div>
+              <h2 style="color:#f59e0b; margin:0 0 12px 0; font-size:20px;">Local Web Server Required</h2>
+              <p style="color:#94a3b8; font-size:13.5px; line-height:1.6; margin:0 0 20px 0;">
+                You opened AeroSim directly using the <code>file:///</code> protocol. Modern web browsers disable <strong>WebGPU</strong> (hardware compute acceleration) and block ES module scripts on <code>file://</code> URLs for security reasons.
+              </p>
+              <div style="background:#0f172a; border:1px solid #334155; border-radius:8px; padding:16px 20px; text-align:left; font-family:Consolas,monospace; font-size:13px; margin-bottom:20px;">
+                <div style="color:#38bdf8; margin-bottom:8px;"># Open terminal in project folder and run:</div>
+                <div style="color:#4ade80; margin-bottom:6px;"><strong>npm run dev</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#64748b;"># Live development server</span></div>
+                <div style="color:#64748b; font-size:11.5px; margin-bottom:10px;">➜ Open: <a href="http://localhost:5173/" style="color:#38bdf8; text-decoration:none;">http://localhost:5173/</a></div>
+                <div style="color:#4ade80; margin-bottom:6px;"><strong>npm run preview</strong> &nbsp;&nbsp;<span style="color:#64748b;"># Production build preview</span></div>
+                <div style="color:#64748b; font-size:11.5px;">➜ Open: <a href="http://localhost:4173/" style="color:#38bdf8; text-decoration:none;">http://localhost:4173/</a></div>
+              </div>
+              <p style="color:#64748b; font-size:12px; margin:0;">
+                Once the server starts, open the <code>http://localhost:...</code> URL in your browser.
+              </p>
+            </div>
+          `;
+          document.body.prepend(banner);
+        });
+      }
+    </script>
   </head>
   <body>
     <div id="app-layout">
@@ -14,7 +44,7 @@
             <span class="brand-dot"></span>
             <span>AeroSim Wind Tunnel</span>
           </div>
-          <span class="phase-pill">PHASE 5 · 3D CFD VISUALIZATIONS</span>
+          <span class="phase-pill">PHASE 6 · DOMAIN WORKFLOWS</span>
         </div>
         <div id="preset-selector-mount"></div>
         <div id="control-panel-mount"></div>
