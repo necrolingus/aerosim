@@ -371,6 +371,7 @@ async function bootstrapWindTunnelApp(): Promise<void> {
     },
     onSnapshotViewport: () => {
       if (!latestForceReadout) return;
+      viewport.renderNow();
       const aero = computeAerodynamicTelemetry({
         windSpeed: state.windSpeed,
         characteristicLength: currentMeshStats.characteristicLength,

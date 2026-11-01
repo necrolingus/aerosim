@@ -66,7 +66,11 @@ export class WindTunnelViewport {
     this.camera.position.set(-2.6, 1.9, 4.2);
 
     // 3. Renderer setup
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    this.renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      powerPreference: 'high-performance',
+      preserveDrawingBuffer: true,
+    });
     this.renderer.setSize(width, height);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.shadowMap.enabled = true;
@@ -650,6 +654,14 @@ export class WindTunnelViewport {
     cpMesh.rotation.y = Math.PI / 2;
     cpMesh.position.set(params.xcp, posY, posZ);
     this.stabilityGroup.add(cpMesh);
+  }
+
+  /**
+   * Forces an immediate, synchronous frame render to the WebGL canvas,
+   * guaranteeing the drawing buffer is populated before snapshot capture.
+   */
+  public renderNow(): void {
+    this.renderer.render(this.scene, this.camera);
   }
 
   /**

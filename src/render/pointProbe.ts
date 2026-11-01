@@ -45,6 +45,15 @@ export function computeProbePhysics(params: {
     latticeCell,
   } = params;
 
+  // LBM pressure: p = cs^2 * rho, where cs^2 = 1/3
+  // Cp = (cs^2 * (rho - 1.0)) / (0.5 * uInletLattice^2)
+  const qDynamic = 0.5 * fluid.density * windSpeedMps * windSpeedMps;
+  const qLat = 0.5 * 1.0 * uInletLattice * uInletLattice;
+  const pressureCoeffCp = (LBM_CONSTANTS.CS_SQ * (localRho - 1.0)) / Math.max(1e-6, qLat);
+
+  // Gauge pressure: Delta p = Cp * q_inf
+  const gaugePressurePa = pressureCoeffCp * qDynamic;
+
   if (isSolid) {
     return {
       worldPos,
@@ -52,10 +61,10 @@ export function computeProbePhysics(params: {
       speedMps: 0,
       speedMph: 0,
       velocityMps: { ux: 0, uy: 0, uz: 0 },
-      gaugePressurePa: 0,
-      pressureCoeffCp: 0,
-      densityRho: 1.0,
-      dynamicPressurePa: 0.5 * fluid.density * windSpeedMps * windSpeedMps,
+      gaugePressurePa,
+      pressureCoeffCp,
+      densityRho: localRho,
+      dynamicPressurePa: qDynamic,
       isInsideSolid: true,
     };
   }
@@ -67,16 +76,6 @@ export function computeProbePhysics(params: {
   const uzPhys = localUz * velScale;
   const speedMps = Math.sqrt(uxPhys * uxPhys + uyPhys * uyPhys + uzPhys * uzPhys);
   const speedMph = speedMps * LBM_CONSTANTS.SPEED_MPS_TO_MPH;
-
-  const qDynamic = 0.5 * fluid.density * windSpeedMps * windSpeedMps;
-
-  // LBM pressure: p = cs^2 * rho, where cs^2 = 1/3
-  // Cp = (cs^2 * (rho - 1.0)) / (0.5 * uInletLattice^2)
-  const qLat = 0.5 * 1.0 * uInletLattice * uInletLattice;
-  const pressureCoeffCp = (LBM_CONSTANTS.CS_SQ * (localRho - 1.0)) / Math.max(1e-6, qLat);
-
-  // Gauge pressure: Delta p = Cp * q_inf
-  const gaugePressurePa = pressureCoeffCp * qDynamic;
 
   return {
     worldPos,
@@ -295,11 +294,15 @@ export class PointProbeTool {
 
     const isSolid = isMeshSurface || (cellFlags ? cellFlags[cellIdx] === 1 : false);
 
+    const fxClamped = Math.max(0, Math.min(nx - 1.001, fx));
+    const fyClamped = Math.max(0, Math.min(ny - 1.001, fy));
+    const fzClamped = Math.max(0, Math.min(nz - 1.001, fz));
+
     const velSample = { x: 0, y: 0, z: 0 };
-    sampleVelocityTrilinear(
-      fx,
-      fy,
-      fz,
+    const sampled = sampleVelocityTrilinear(
+      fxClamped,
+      fyClamped,
+      fzClamped,
       nx,
       ny,
       nz,
@@ -309,7 +312,33 @@ export class PointProbeTool {
       velSample
     );
 
-    const localRho = this.currentField.rho[cellIdx] || 1.0;
+    if ((!sampled || (velSample.x === 0 && velSample.y === 0 && velSample.z === 0)) && !isSolid) {
+      velSample.x = this.currentField.ux[cellIdx] || 0;
+      velSample.y = this.currentField.uy[cellIdx] || 0;
+      velSample.z = this.currentField.uz[cellIdx] || 0;
+    }
+
+    let localRho = this.currentField.rho[cellIdx] || 1.0;
+    if (isSolid && cellFlags && cellFlags[cellIdx] === 1) {
+      // Find nearest fluid neighbor for accurate surface wall pressure
+      const neighbors = [
+        [1, 0, 0], [-1, 0, 0],
+        [0, 1, 0], [0, -1, 0],
+        [0, 0, 1], [0, 0, -1]
+      ];
+      for (const [ox, oy, oz] of neighbors) {
+        const nxCell = ix + ox;
+        const nyCell = iy + oy;
+        const nzCell = iz + oz;
+        if (nxCell >= 0 && nxCell < nx && nyCell >= 0 && nyCell < ny && nzCell >= 0 && nzCell < nz) {
+          const nbIdx = nxCell + nx * (nyCell + ny * nzCell);
+          if (cellFlags[nbIdx] === 0) {
+            localRho = this.currentField.rho[nbIdx] || localRho;
+            break;
+          }
+        }
+      }
+    }
 
     const readout = computeProbePhysics({
       localRho,

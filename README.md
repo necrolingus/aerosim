@@ -347,6 +347,88 @@ where `epsilon = 2.5` is the empirical blockage coefficient for 3D bluff bodies.
 
 ## 6. Physical Assumptions & Discretization Justifications
 
+### 6.1 Wind Tunnel Enclosure Dimensions & Test Section Geometry
+
+The default physical test section enclosure in AeroSim has the following dimensions:
+
+| Dimension | Axis | Default Size (m) | Imperial Equivalent | Aerodynamic Role |
+| :--- | :---: | :---: | :---: | :--- |
+| **Length** | **X** (Streamwise) | **6.0 m** | ~19.7 ft | Inflow stabilization and downstream wake development |
+| **Width** | **Z** (Spanwise) | **2.8 m** | ~9.2 ft | Lateral clearance to prevent sidewall blockage |
+| **Height** | **Y** (Floor-to-Ceiling) | **2.4 m** | ~7.9 ft | Vertical clearance for roof/wake vortex expansion |
+
+- **Cross-Sectional Test Area ($A_{\text{tunnel}}$):** $W \times H = 2.8\text{ m} \times 2.4\text{ m} = \mathbf{6.72\text{ m}^2}$.
+- **Total Test Chamber Volume:** $L \times W \times H = 6.0\text{ m} \times 2.8\text{ m} \times 2.4\text{ m} = \mathbf{40.32\text{ m}^3}$.
+- **Custom Dimensions:** You can change Length, Width, and Height dynamically in **Panel 4 ("Test Section Enclosure")** of the control drawer.
+
+---
+
+### 6.2 Aerodynamic Blockage Ratio ($A_{\text{ref}} / A_{\text{tunnel}}$) & Why Enclosure Size Matters
+
+In both physical wind tunnel experiments (SAE / NASA / AIAA standards) and numerical CFD simulations, **the size of the wind tunnel relative to the test model matters**:
+
+```
+                       WIND TUNNEL CROSS-SECTION (2.8m x 2.4m = 6.72 m²)
++-------------------------------------------------------------------------------+
+|                                                                               |
+|          Streamlines divert around the solid obstacle                         |
+|      ~~~~~~~~~~~\                                       /~~~~~~~~~~~          |
+|                  \   +-------------------------+   /                          |
+|                   -->|  Frontal Area (A_ref)   |<--                           |
+|                      |  e.g. 0.385 m² (5.7%)   |                              |
+|                   -->|  Model: Dachshund / Car |<--                           |
+|                  /   +-------------------------+   \                          |
+|      ~~~~~~~~~~~/                                       \~~~~~~~~~~~          |
+|                                                                               |
++-------------------------------------------------------------------------------+
+```
+
+The **Aerodynamic Blockage Ratio** is defined as:
+```text
+Blockage Ratio = (Frontal Projected Area A_ref / Test Section Area A_tunnel) * 100%
+```
+
+1. **Why Excessive Blockage Corrupts Results (The Venturi Effect):**
+   - If an obstacle is too large for the tunnel (**Blockage $> 7.5\% - 10\%$**), the ceiling and side walls physically constrict the diverting streamlines.
+   - By conservation of mass, the fluid must squeeze through the narrowed gap between the model and the walls, accelerating the local flow speed ($u > U_\infty$) and artificially dropping pressure (Bernoulli suction).
+   - This produces falsely elevated drag coefficients ($C_d$) and altered separation points that would not occur in open outdoor air.
+2. **Why Excessive Downsizing Degrades Resolution:**
+   - If an obstacle is too small (**Blockage $< 0.5\%$**, e.g., an unscaled 15 cm desk figurine spanning only ~4 grid cells across), the spatial lattice cannot resolve the boundary layer, shear layer detachment, or wake vortex street.
+3. **The Golden Target:**
+   - In AeroSim, aim for a blockage ratio of **$3.0\% \text{ to } 7.5\%$** (such as $A_{\text{ref}} \approx 0.2\text{ to }0.5\text{ m}^2$). This ensures 35 to 60 grid cells span the model for high-fidelity vortex resolution while keeping wall interference negligible.
+
+---
+
+### 6.3 3D Slicing & CAD Scale Discrepancy (Millimeters vs. SI Meters)
+
+Why does a 3D model look microscopic when first imported from Cura, PrusaSlicer, or CAD software?
+
+1. **The STL Format is Unitless:**
+   - Standard STL files contain only raw floating-point triangle vertex coordinates (`vertex X Y Z`) without any unit metadata in the file header.
+2. **3D Printing Slicers Use Millimeters (mm):**
+   - Software like Ultimaker Cura, PrusaSlicer, Bambu Studio, and Fusion 360 default to **millimeters (mm)**.
+   - For example, a 3D-printable Dachshund figurine in Cura measures:
+     ```text
+     X: 49.606 mm   (4.96 cm  / ~1.95 in)
+     Y: 155.846 mm  (15.58 cm / ~6.13 in)
+     Z: 98.000 mm   (9.80 cm  / ~3.85 in)
+     ```
+3. **CFD Solvers Use SI Metric Units (Meters):**
+   - AeroSim is a physical aerodynamic simulator; all governing equations, Navier-Stokes tensors, Reynolds numbers, and forces operate strictly in **meters (m)**.
+   - When an STL with dimensions $> 50$ units is imported, AeroSim auto-detects that it was exported in millimeters and applies an automatic $0.001\times$ conversion factor:
+     ```text
+     155.8 mm * 0.001 = 0.156 meters (15.6 cm)
+     ```
+4. **The Scale Comparison:**
+   - Inside an industrial $6.0\text{ m} \times 2.8\text{ m} \times 2.4\text{ m}$ test section, a $0.156\text{ m}$ (6-inch) tabletop figurine takes up **less than 2.5%** of the tunnel length!
+5. **How to Resize Your Model:**
+   - In **Panel 2 ("Transform & Orientation")**, adjust the **Uniform Scale Multiplier** slider (e.g., set to $8\times - 12\times$ to bring the model up to real-world animal / vehicle scale $\sim 1.5\text{ m}$).
+   - Or press **R** on your keyboard to activate the 3D Scale Gizmo handles in the viewport and drag to resize interactively. The HUD automatically recalculates frontal area ($A_{\text{ref}}$) and blockage ratio in real time.
+
+---
+
+### 6.4 Key Physical Assumptions
+
 1. **Incompressible Flow Assumption (`Ma < 0.22`):**
    LBM acts as an artificial compressibility solver. By constraining the lattice inlet velocity to `u_lat in [0.04, 0.11]`, the lattice Mach number satisfies `Ma = u_lat / cs < 0.22`. Density variations scale as `O(Ma^2) < 4%`, accurately matching incompressible Navier-Stokes aerodynamics.
 
@@ -492,7 +574,7 @@ Because the solver has 2nd-order spatial accuracy (`O(h^2)`), refining the mesh 
 ```
 
 ### Panel 1: Test Specimen / STL Stage
-- **Upload Custom STL Mesh Button:** Drag-and-drop or upload any 3D model in binary or ASCII STL format. Automatically verifies watertight manifolds and auto-detects millimeter vs. meter scaling.
+- **Upload Custom STL Mesh Button:** Drag-and-drop or upload any 3D model in binary or ASCII STL format. Automatically verifies watertight manifolds and auto-detects millimeter vs. meter scaling (models $> 50$ units are converted by $0.001\times$ from mm to SI meters).
 - **Preset Specimen Buttons:** One-click loading of standard test models:
   - *Calibration Sphere (Ø 1.0m)*
   - *Calibration Cube (1.0m³)*
@@ -503,7 +585,7 @@ Because the solver has 2nd-order spatial accuracy (`O(h^2)`), refining the mesh 
 ### Panel 2: Transform & Orientation
 - **Gizmo Buttons (Move [W], Rotate [E], Scale [R]):** Toggles 3D handles in the viewport.
 - **Roll X, Yaw Y, Pitch Z Inputs:** Rotates the model in 5-degree increments to test angle of attack (AoA) or side-slip yaw.
-- **Uniform Scale Multiplier Slider:** Dynamically resizes the model while recalculating frontal silhouette area (`A_ref`).
+- **Uniform Scale Multiplier Slider:** Dynamically resizes the model (0.1x to 20x) while recalculating frontal silhouette area (`A_ref`) and blockage ratio. Use this slider to scale small desktop 3D prints (e.g. 15 cm figurines) up to wind tunnel specimen size (~1.5 m).
 - **Reset Pose & Reset Camera Buttons:** Re-aligns orientation to neutral (0°) and re-centers the perspective camera.
 
 ### Panel 3: Wind & Fluid Conditions
@@ -515,7 +597,7 @@ Because the solver has 2nd-order spatial accuracy (`O(h^2)`), refining the mesh 
 - **Ground-Mounted Boundary Floor Checkbox:** Toggles between open freestream flow and ground-mounted atmospheric flow with a logarithmic Atmospheric Boundary Layer (ABL) velocity profile.
 
 ### Panel 4: Test Section Enclosure
-- **Length (X), Width (Z), Height (Y) Inputs:** Adjusts the physical dimensions of the wind tunnel enclosure in meters.
+- **Length (X), Width (Z), Height (Y) Inputs:** Adjusts the physical dimensions of the wind tunnel enclosure in meters (default: **6.0 m Length × 2.8 m Width × 2.4 m Height**, cross-sectional area $6.72\text{ m}^2$).
 - **Interactive (60 FPS) Button:** Sets resolution (~1M cells) to guarantee locked 60 FPS performance on all hardware.
 - **High-Precision Lock Button:** Increases grid resolution by 2.5x (~10M cells) using safe 2D compute workgroup dispatching for fine wake details.
 

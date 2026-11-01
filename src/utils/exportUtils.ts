@@ -44,6 +44,10 @@ export async function captureViewportWithStamp(
     throw new Error('Could not create 2D canvas context for snapshot stamp.');
   }
 
+  // Fill background with scene clear color in case of any transparent areas
+  ctx.fillStyle = '#0b101b';
+  ctx.fillRect(0, 0, offscreen.width, offscreen.height);
+
   // Draw WebGPU/Three.js frame
   ctx.drawImage(sourceCanvas, 0, 0);
 
