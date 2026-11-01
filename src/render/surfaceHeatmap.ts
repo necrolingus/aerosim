@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { VoxelGridResult } from '../geometry/voxelizer';
 import { sampleCFDColormap } from '../solver/lbmCpuReference';
+import { LBM_CONSTANTS } from '../solver/lbmConstants';
 
 export type SurfaceHeatmapMode = 'off' | 'cp' | 'drag';
 
@@ -111,7 +112,7 @@ export class SurfaceHeatmapRenderer {
         // Stagnation point: Cp = +1.0 (Red / Orange)
         // Freestream ambient: Cp = 0.0 (Green)
         // Separation suction wake: Cp < 0.0 (Cyan / Blue, down to -1.5)
-        const cp = ((1.0 / 3.0) * (localRho - 1.0)) / qLat;
+        const cp = (LBM_CONSTANTS.CS_SQ * (localRho - 1.0)) / qLat;
 
         // Map Cp in [-1.5, +1.0] to normalized color t in [0, 1]
         // t = 0.0 -> Blue (Cp = -1.5)

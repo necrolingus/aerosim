@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "vitest run src/validation/phase1.test.ts src/validation/phase2.test.ts src/validation/phase3.test.ts src/validation/phase4.test.ts src/validation/phase5.test.ts",
+    "test": "vitest run src/validation/phase1.test.ts src/validation/phase2.test.ts src/validation/phase3.test.ts src/validation/phase4.test.ts src/validation/phase5.test.ts src/validation/phase6.test.ts",
     "test:watch": "vitest",
     "test:physics": "vitest run src/validation/physicsSuite.test.ts"
   },

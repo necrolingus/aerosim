@@ -32,7 +32,7 @@ struct ForceParams {
 
 @compute @workgroup_size(64)
 fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
-  let bIdx = gid.x;
+  let bIdx = getGlobal1DIndex(gid);
   if (bIdx >= fParams.boundaryCellCount) {
     return;
   }

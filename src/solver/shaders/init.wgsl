@@ -23,7 +23,7 @@ struct SolverParams {
 
 @compute @workgroup_size(64)
 fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
-  let idx = gid.x;
+  let idx = getGlobal1DIndex(gid);
   if (idx >= params.totalCells) {
     return;
   }

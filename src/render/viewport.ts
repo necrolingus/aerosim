@@ -45,6 +45,9 @@ export class WindTunnelViewport {
   private pointProbe: PointProbeTool;
   private lastAnimTimeSec = performance.now() / 1000;
 
+  // Phase 6: Rocket Stability Visualizer (Xcp and Xcg markers)
+  private stabilityGroup: THREE.Group;
+
   constructor(container: HTMLElement, initialState: WindTunnelState) {
     this.container = container;
     this.currentWindSpeed = initialState.windSpeed;
@@ -108,11 +111,13 @@ export class WindTunnelViewport {
     this.groundPlaneGroup = new THREE.Group();
     this.windVectorsGroup = new THREE.Group();
     this.silhouettePreviewGroup = new THREE.Group();
+    this.stabilityGroup = new THREE.Group();
 
     this.scene.add(this.tunnelGroup);
     this.scene.add(this.groundPlaneGroup);
     this.scene.add(this.windVectorsGroup);
     this.scene.add(this.silhouettePreviewGroup);
+    this.scene.add(this.stabilityGroup);
 
     this.voxelVisualizer = new VoxelDebugVisualizer(this.scene);
     this.voxelVisualizer.setMode(initialState.voxelVizMode);
@@ -597,6 +602,61 @@ export class WindTunnelViewport {
     if (this.pointProbe.isEnabled()) {
       this.pointProbe.updateFlowField(params);
     }
+  }
+
+  /**
+   * Phase 6: Visualizes Rocket Aerodynamic Stability by rendering:
+   * 1. Center of Gravity (X_cg) as an amber sphere
+   * 2. Center of Pressure (X_cp) as a cyan targeting ring along the model centerline
+   * 3. A dashed connecting line displaying the static margin
+   */
+  public updateRocketStabilityMarker(params: {
+    visible: boolean;
+    xcp: number;
+    xcg: number;
+    diameter: number;
+  }): void {
+    this.clearGroup(this.stabilityGroup);
+    if (!params.visible) return;
+
+    const posY = this.activeMesh ? this.activeMesh.position.y : 0;
+    const posZ = this.activeMesh ? this.activeMesh.position.z : 0;
+
+    // Streamwise line connecting Xcg to Xcp
+    const lineMat = new THREE.LineDashedMaterial({
+      color: 0x38bdf8,
+      dashSize: 0.04,
+      gapSize: 0.02,
+    });
+    const lineGeo = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(params.xcg, posY, posZ),
+      new THREE.Vector3(params.xcp, posY, posZ),
+    ]);
+    const line = new THREE.Line(lineGeo, lineMat);
+    line.computeLineDistances();
+    this.stabilityGroup.add(line);
+
+    // Xcg marker: Amber sphere
+    const cgGeo = new THREE.SphereGeometry(Math.max(0.025, params.diameter * 0.07), 16, 16);
+    const cgMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
+    const cgMesh = new THREE.Mesh(cgGeo, cgMat);
+    cgMesh.position.set(params.xcg, posY, posZ);
+    this.stabilityGroup.add(cgMesh);
+
+    // Xcp marker: Cyan targeting ring perpendicular to streamwise wind
+    const cpGeo = new THREE.TorusGeometry(Math.max(0.05, params.diameter * 0.22), 0.008, 12, 32);
+    const cpMat = new THREE.MeshBasicMaterial({ color: 0x06b6d4 });
+    const cpMesh = new THREE.Mesh(cpGeo, cpMat);
+    cpMesh.rotation.y = Math.PI / 2;
+    cpMesh.position.set(params.xcp, posY, posZ);
+    this.stabilityGroup.add(cpMesh);
+  }
+
+  /**
+   * Returns the underlying WebGL/Three.js canvas for high-resolution report snapshots.
+   */
+  public getCanvas(): HTMLCanvasElement {
+    return this.renderer.domElement;
   }
 
   private clearGroup(group: THREE.Group): void {

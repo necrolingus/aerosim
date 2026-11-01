@@ -15,6 +15,7 @@ export class TelemetryHudUI {
   private voxelTelemetry: VoxelTelemetry | null = null;
   private forceReadout: AerodynamicForceReadout | null = null;
   private solverMode: SolverMode = 'interactive';
+  private groundPlaneEnabled = false;
 
   constructor(container: HTMLElement) {
     this.container = container;
@@ -30,11 +31,15 @@ export class TelemetryHudUI {
     stats: MeshStats,
     telemetry: AerodynamicTelemetry,
     solverMode: SolverMode,
-    voxelTelemetry?: VoxelTelemetry
+    voxelTelemetry?: VoxelTelemetry,
+    groundPlaneEnabled?: boolean
   ): void {
     this.meshStats = stats;
     this.telemetry = telemetry;
     this.solverMode = solverMode;
+    if (groundPlaneEnabled !== undefined) {
+      this.groundPlaneEnabled = groundPlaneEnabled;
+    }
     if (voxelTelemetry) {
       this.voxelTelemetry = voxelTelemetry;
     }
@@ -72,7 +77,8 @@ export class TelemetryHudUI {
       }
       if (clSubEl) {
         const liftSign = forceReadout.liftForceNewtons >= 0 ? '+' : '';
-        clSubEl.textContent = `Lift: ${liftSign}${forceReadout.liftForceNewtons.toFixed(1)} N (${liftSign}${forceReadout.liftForceLbs.toFixed(1)} lbf)`;
+        const labelText = this.groundPlaneEnabled ? 'Roof Uplift' : 'Lift';
+        clSubEl.textContent = `${labelText}: ${liftSign}${forceReadout.liftForceNewtons.toFixed(1)} N (${liftSign}${forceReadout.liftForceLbs.toFixed(1)} lbf)`;
       }
       if (dragForceEl) {
         dragForceEl.innerHTML = `${forceReadout.dragForceNewtons.toFixed(1)} <small>N</small>`;
@@ -112,7 +118,10 @@ export class TelemetryHudUI {
     this.container.innerHTML = `
       <div class="telemetry-card">
         <div class="card-header">
-          <span class="card-title">QUANTITATIVE AERODYNAMIC FORCES (MOMENTUM EXCHANGE)</span>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="card-title">QUANTITATIVE AERODYNAMIC FORCES (MOMENTUM EXCHANGE)</span>
+            ${this.groundPlaneEnabled ? '<span class="badge-ok" style="font-size:9.5px; padding:2px 6px;">🏡 Ground ABL</span>' : '<span class="badge-accent" style="font-size:9.5px; padding:2px 6px;">🚀 Freestream</span>'}
+          </div>
           ${blockageWarning}
         </div>
         <div class="metrics-grid">

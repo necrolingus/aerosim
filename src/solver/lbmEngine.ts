@@ -3,7 +3,7 @@ import collideStreamWgsl from './shaders/collideStream.wgsl?raw';
 import boundaryWgsl from './shaders/boundary.wgsl?raw';
 import postProcessWgsl from './shaders/postProcess.wgsl?raw';
 import forcesWgsl from './shaders/forces.wgsl?raw';
-import { D3Q19_COMMON_WGSL, LBM_CONSTANTS } from './lbmConstants';
+import { calculateDispatchWorkgroups, D3Q19_COMMON_WGSL, LBM_CONSTANTS } from './lbmConstants';
 import type { VoxelGridResult } from '../geometry/voxelizer';
 import { LBMCpuReferenceSolver, type SliceAxis, type SliceFieldMode } from './lbmCpuReference';
 import {
@@ -100,7 +100,7 @@ export class LBMEngine {
     const initMod = device.createShaderModule({ code: D3Q19_COMMON_WGSL + '\n' + initShaderWgsl });
     const collideMod = device.createShaderModule({ code: D3Q19_COMMON_WGSL + '\n' + collideStreamWgsl });
     const boundaryMod = device.createShaderModule({ code: D3Q19_COMMON_WGSL + '\n' + boundaryWgsl });
-    const postMod = device.createShaderModule({ code: postProcessWgsl });
+    const postMod = device.createShaderModule({ code: D3Q19_COMMON_WGSL + '\n' + postProcessWgsl });
     const forcesMod = device.createShaderModule({ code: D3Q19_COMMON_WGSL + '\n' + forcesWgsl });
 
     this.initPipeline = device.createComputePipeline({
@@ -391,7 +391,8 @@ export class LBMEngine {
     const pass = encoder.beginComputePass();
     pass.setPipeline(this.initPipeline);
     pass.setBindGroup(0, bindGroup);
-    pass.dispatchWorkgroups(Math.ceil(totalCells / 64));
+    const [wx, wy, wz] = calculateDispatchWorkgroups(totalCells);
+    pass.dispatchWorkgroups(wx, wy, wz);
     pass.end();
     this.device.queue.submit([encoder.finish()]);
   }
@@ -477,7 +478,7 @@ export class LBMEngine {
     this.isBusy = true;
     try {
       const totalCells = this.voxel.nx * this.voxel.ny * this.voxel.nz;
-      const workgroups = Math.ceil(totalCells / 64);
+      const [cellWx, cellWy, cellWz] = calculateDispatchWorkgroups(totalCells);
 
       for (let s = 0; s < substeps; s++) {
         this.uploadUniformParams();
@@ -512,11 +513,11 @@ export class LBMEngine {
         const pass = encoder.beginComputePass();
         pass.setPipeline(this.collidePipeline);
         pass.setBindGroup(0, collideBG);
-        pass.dispatchWorkgroups(workgroups);
+        pass.dispatchWorkgroups(cellWx, cellWy, cellWz);
 
         pass.setPipeline(this.boundaryPipeline);
         pass.setBindGroup(0, boundaryBG);
-        pass.dispatchWorkgroups(workgroups);
+        pass.dispatchWorkgroups(cellWx, cellWy, cellWz);
         pass.end();
 
         this.device.queue.submit([encoder.finish()]);
@@ -548,7 +549,8 @@ export class LBMEngine {
       const pass = encoder.beginComputePass();
       pass.setPipeline(this.postProcessPipeline);
       pass.setBindGroup(0, postBG);
-      pass.dispatchWorkgroups(Math.ceil(slicePixels / 64));
+      const [postWx, postWy, postWz] = calculateDispatchWorkgroups(slicePixels);
+      pass.dispatchWorkgroups(postWx, postWy, postWz);
 
       if (boundaryCellCount > 0) {
         const forceBG = this.device.createBindGroup({
@@ -563,7 +565,8 @@ export class LBMEngine {
         });
         pass.setPipeline(this.forcesPipeline);
         pass.setBindGroup(0, forceBG);
-        pass.dispatchWorkgroups(Math.ceil(boundaryCellCount / 64));
+        const [forceWx, forceWy, forceWz] = calculateDispatchWorkgroups(boundaryCellCount);
+        pass.dispatchWorkgroups(forceWx, forceWy, forceWz);
       }
       pass.end();
 
@@ -577,20 +580,31 @@ export class LBMEngine {
       }
       this.device.queue.submit([encoder.finish()]);
 
-      await Promise.all([
-        this.sliceReadbackBuffer!.mapAsync(GPUMapMode.READ, 0, sliceBytes),
-        boundaryCellCount > 0
-          ? this.forceReadbackBuffer!.mapAsync(GPUMapMode.READ, 0, forceBytes)
-          : Promise.resolve(),
-        readMacroField && this.macroReadbackBuffer
-          ? this.macroReadbackBuffer.mapAsync(GPUMapMode.READ, 0, macroBytes)
-          : Promise.resolve(),
-      ]);
+      try {
+        await Promise.all([
+          this.sliceReadbackBuffer!.mapAsync(GPUMapMode.READ, 0, sliceBytes),
+          boundaryCellCount > 0
+            ? this.forceReadbackBuffer!.mapAsync(GPUMapMode.READ, 0, forceBytes)
+            : Promise.resolve(),
+          readMacroField && this.macroReadbackBuffer
+            ? this.macroReadbackBuffer.mapAsync(GPUMapMode.READ, 0, macroBytes)
+            : Promise.resolve(),
+        ]);
+      } catch (err: unknown) {
+        // Buffer was reallocated/destroyed during a live grid resolution switch or reset
+        const isAbort = (err instanceof Error || (typeof DOMException !== 'undefined' && err instanceof DOMException)) && err.name === 'AbortError';
+        if (isAbort) {
+          return null;
+        }
+        throw err;
+      }
 
-      const mappedSlice = this.sliceReadbackBuffer!.getMappedRange(0, sliceBytes);
+      if (!this.sliceReadbackBuffer) return null;
+
+      const mappedSlice = this.sliceReadbackBuffer.getMappedRange(0, sliceBytes);
       const rgba = new Uint8Array(sliceBytes);
       rgba.set(new Uint8Array(mappedSlice));
-      this.sliceReadbackBuffer!.unmap();
+      this.sliceReadbackBuffer.unmap();
 
       let macroField: { ux: Float32Array; uy: Float32Array; uz: Float32Array; rho: Float32Array } | undefined = undefined;
       if (readMacroField && this.macroReadbackBuffer) {
@@ -615,8 +629,8 @@ export class LBMEngine {
       let fzLat = 0;
       let mzLat = 0;
 
-      if (boundaryCellCount > 0) {
-        const mappedForce = new Float32Array(this.forceReadbackBuffer!.getMappedRange(0, forceBytes));
+      if (boundaryCellCount > 0 && this.forceReadbackBuffer) {
+        const mappedForce = new Float32Array(this.forceReadbackBuffer.getMappedRange(0, forceBytes));
         for (let b = 0; b < boundaryCellCount; b++) {
           const base = b * 8;
           fxLat += mappedForce[base];
@@ -624,7 +638,7 @@ export class LBMEngine {
           fzLat += mappedForce[base + 2];
           mzLat += mappedForce[base + 6];
         }
-        this.forceReadbackBuffer!.unmap();
+        this.forceReadbackBuffer.unmap();
       }
 
       const normForces = computeNormalizedForceCoefficients({

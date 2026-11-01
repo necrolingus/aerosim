@@ -88,7 +88,53 @@ export const LBM_CONSTANTS = {
   SPONGE_WEIGHT_INTERIOR: 0.85,
   SPONGE_WEIGHT_EXTERIOR: 0.15,
   OUTLET_CONVECTIVE_WEIGHT: 0.75,
+  /** Maskell (1963) wind tunnel blockage correction factor */
+  MASKELL_EPSILON: 2.5,
+  /** Inflow velocity parameterization bounds in lattice units */
+  U_INLET_LAT_DEFAULT: 0.085,
+  U_INLET_LAT_MIN: 0.04,
+  U_INLET_LAT_MAX: 0.11,
+  DEFAULT_WIND_SPEED_MPS: 25.0,
+  /** Unit conversion factors */
+  SPEED_MPS_TO_MPH: 2.23693629,
+  SPEED_MPS_TO_KMH: 3.6,
+  NEWTONS_TO_LBF: 0.224808943,
+  NEWTONS_TO_KGF: 0.101971621,
+  /** WebGPU Compute limits & workgroup layout */
+  MAX_COMPUTE_WORKGROUPS_PER_DIM: 65535,
+  WORKGROUP_SIZE_X: 64,
 } as const;
+
+/**
+ * Calculates optimal incompressible lattice inflow speed (Mach < 0.2) based on physical wind speed.
+ */
+export function computeOptimalLatticeSpeed(windSpeedMps: number): number {
+  return Math.min(
+    LBM_CONSTANTS.U_INLET_LAT_MAX,
+    Math.max(
+      LBM_CONSTANTS.U_INLET_LAT_MIN,
+      0.06 + (windSpeedMps / 120.0) * 0.045
+    )
+  );
+}
+
+/**
+ * Maps any number of elements to a 2D/3D WebGPU workgroup dispatch [wx, wy, wz]
+ * strictly enforcing that no dimension exceeds the WebGPU hardware limit (65535).
+ */
+export function calculateDispatchWorkgroups(
+  totalElements: number,
+  workgroupSizeX = LBM_CONSTANTS.WORKGROUP_SIZE_X
+): [number, number, number] {
+  const totalWorkgroups = Math.max(1, Math.ceil(totalElements / workgroupSizeX));
+  const maxDim = LBM_CONSTANTS.MAX_COMPUTE_WORKGROUPS_PER_DIM;
+  if (totalWorkgroups <= maxDim) {
+    return [totalWorkgroups, 1, 1];
+  }
+  const x = maxDim;
+  const y = Math.ceil(totalWorkgroups / maxDim);
+  return [x, y, 1];
+}
 
 /**
  * Computes standard second-order equilibrium distribution feq_i(rho, u).
@@ -137,6 +183,11 @@ const OPP = array<u32, 19>(
 const CS_SQ: f32 = 0.3333333333333333;
 const MAX_U_MAG: f32 = 0.22;
 const MAX_U_MAG_SQ: f32 = 0.0484;
+
+// WebGPU safe multi-dimensional workgroup 1D thread index calculator
+fn getGlobal1DIndex(gid: vec3<u32>) -> u32 {
+  return gid.x + gid.y * (65535u * 64u);
+}
 
 fn computeFeq(dir: u32, rho: f32, ux: f32, uy: f32, uz: f32) -> f32 {
   let cu = 3.0 * (f32(CX[dir]) * ux + f32(CY[dir]) * uy + f32(CZ[dir]) * uz);

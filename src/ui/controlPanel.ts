@@ -1,21 +1,123 @@
 import { FLUID_PRESETS, type FluidPresetId, type GizmoMode, type WindTunnelState } from '../core/types';
 import { eventBus } from '../core/eventBus';
+import { LBM_CONSTANTS } from '../solver/lbmConstants';
+import type {
+  ABComparisonDelta,
+  BuildingStormReport,
+  RocketStabilityReport,
+} from '../solver/domainWorkflows';
 
 export interface ControlPanelCallbacks {
   onStateChange: (newState: WindTunnelState) => void;
   onResetFlow?: () => void;
+  onSaveBaseline?: () => void;
+  onClearBaseline?: () => void;
+  onExportCSV?: () => void;
+  onExportJSON?: () => void;
+  onSnapshotViewport?: () => void;
 }
 
 export class ControlPanelUI {
   private container: HTMLElement;
   private state: WindTunnelState;
   private callbacks: ControlPanelCallbacks;
+  private abComparison: ABComparisonDelta | null = null;
+  private rocketStability: RocketStabilityReport | null = null;
+  private buildingStormReport: BuildingStormReport | null = null;
 
   constructor(container: HTMLElement, initialState: WindTunnelState, callbacks: ControlPanelCallbacks) {
     this.container = container;
     this.state = structuredClone(initialState);
     this.callbacks = callbacks;
     this.render();
+  }
+
+  public setABComparison(delta: ABComparisonDelta | null): void {
+    this.abComparison = delta;
+    const box = this.container.querySelector('#ab-comparison-content');
+    const clearSlot = this.container.querySelector('#ab-clear-slot');
+    if (clearSlot) {
+      clearSlot.innerHTML = delta
+        ? '<button type="button" class="btn-secondary" id="btn-clear-baseline" style="padding:3px 8px; font-size:11px; color:#f87171;">✖ Clear</button>'
+        : '';
+      const clearBtn = clearSlot.querySelector<HTMLButtonElement>('#btn-clear-baseline');
+      clearBtn?.addEventListener('click', () => {
+        this.callbacks.onClearBaseline?.();
+      });
+    }
+    if (box) {
+      if (delta) {
+        box.innerHTML = `
+          <div style="background:rgba(15,23,42,0.6); padding:8px; border-radius:6px; border:1px solid rgba(148,163,184,0.15); margin-top:8px;">
+            <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:3px;">
+              <span style="color:#94a3b8;">Run A (Baseline):</span>
+              <strong style="color:#f8fafc;">${delta.baseline.specimenName} · Cd ${delta.baseline.cd.toFixed(3)}</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:6px;">
+              <span style="color:#94a3b8;">Run B (Live):</span>
+              <strong style="color:#38bdf8;">${delta.live.specimenName} · Cd ${delta.live.cd.toFixed(3)}</strong>
+            </div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <span class="${delta.isDragReduced ? 'badge-ok' : 'badge-warn'}" style="font-size:10.5px;">
+                ΔCd ${delta.deltaCd >= 0 ? '+' : ''}${delta.deltaCd.toFixed(3)} (${delta.percentDeltaCd >= 0 ? '+' : ''}${delta.percentDeltaCd.toFixed(1)}%)
+              </span>
+              <span class="badge-accent" style="font-size:10.5px;">
+                ΔLift ${delta.deltaLiftForceN >= 0 ? '+' : ''}${delta.deltaLiftForceN.toFixed(1)} N
+              </span>
+            </div>
+          </div>
+        `;
+      } else {
+        box.innerHTML = `
+          <p style="font-size:10.5px; color:#94a3b8; margin-top:6px;">
+            Click <strong>Save Run A</strong> to freeze current forces, then modify shape or pose to see live comparison deltas.
+          </p>
+        `;
+      }
+    }
+  }
+
+  public setRocketStability(report: RocketStabilityReport | null): void {
+    this.rocketStability = report;
+    const stabBox = this.container.querySelector('#stability-stats-container');
+    if (stabBox && report) {
+      stabBox.innerHTML = `
+        <div class="stat-row" style="display:flex; justify-content:space-between; margin-bottom:4px;">
+          <span style="color:var(--text-muted);">Center of Pressure (X<sub>cp</sub>):</span>
+          <strong style="color:var(--accent-cyan); font-family:var(--font-mono);">${report.xcpMeters.toFixed(2)} m</strong>
+        </div>
+        <div class="stat-row" style="display:flex; justify-content:space-between; margin-bottom:4px;">
+          <span style="color:var(--text-muted);">Static Margin:</span>
+          <strong style="color:${report.isStable ? '#10b981' : '#ef4444'}; font-family:var(--font-mono);">
+            ${report.staticMarginCalibers.toFixed(2)} calibers
+          </strong>
+        </div>
+        <div style="font-size:10.5px; line-height:1.35; color:#94a3b8; margin-top:4px;">
+          ${report.explanation}
+        </div>
+      `;
+    }
+    const badge = this.container.querySelector('#rocket-stab-badge');
+    if (badge && report) {
+      badge.className = report.isStable ? 'badge-ok' : 'badge-warn';
+      badge.textContent = report.isStable ? '✓ Stable' : '⚠ Unstable';
+    }
+  }
+
+  public setBuildingStormReport(report: BuildingStormReport | null): void {
+    this.buildingStormReport = report;
+    const tableBody = this.container.querySelector('#storm-ratings-tbody');
+    if (tableBody && report) {
+      tableBody.innerHTML = report.ratings.slice(1, 5).map((r) => `
+        <tr style="border-bottom: 1px solid rgba(148, 163, 184, 0.1);">
+          <td style="padding: 4px 2px; color: #f8fafc;">${r.ratingName.split('(')[0]}</td>
+          <td style="padding: 4px 2px; text-align: right; font-family: var(--font-mono); color: var(--accent-cyan);">${r.stormWindKmh.toFixed(0)} km/h</td>
+          <td style="padding: 4px 2px; text-align: right; font-family: var(--font-mono); color: ${r.upliftForceN > 0 ? '#f59e0b' : '#38bdf8'};">
+            ${r.upliftForceN >= 0 ? '+' : ''}${r.upliftForceN.toFixed(0)} N <small>(${r.upliftForceKgf.toFixed(0)} kgf)</small>
+          </td>
+        </tr>
+      `).join('');
+    }
   }
 
   public syncTransformInputs(transform: WindTunnelState['transform']): void {
@@ -256,6 +358,149 @@ export class ControlPanelUI {
           </div>
         </div>
       </div>
+
+      <div class="panel-section">
+        <div class="section-header">
+          <span class="section-title">8. DOMAIN WORKFLOWS & DATA EXPORT</span>
+          <span class="badge-accent">PHASE 6</span>
+        </div>
+
+        <div class="control-row">
+          <label>Workflow Persona Mode</label>
+          <div class="btn-row-2">
+            <button type="button" class="gizmo-btn ${this.state.domainWorkflowMode === 'freestream' ? 'active' : ''}" data-domain="freestream">
+              🚀 Freestream (Rockets)
+            </button>
+            <button type="button" class="gizmo-btn ${this.state.domainWorkflowMode === 'ground_atmospheric' ? 'active' : ''}" data-domain="ground_atmospheric">
+              🏡 Ground ABL (Sheds)
+            </button>
+          </div>
+        </div>
+
+        ${this.state.domainWorkflowMode === 'freestream' ? `
+          <div class="domain-card" style="background:rgba(30,41,59,0.5); padding:10px; border-radius:6px; border:1px solid rgba(148,163,184,0.15);">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <strong style="color:#38bdf8; font-size:11.5px;">Rocket Static Stability</strong>
+              <span id="rocket-stab-badge" class="${this.rocketStability?.isStable ? 'badge-ok' : 'badge-warn'}">
+                ${this.rocketStability ? (this.rocketStability.isStable ? '✓ Stable' : '⚠ Unstable') : 'Estimating...'}
+              </span>
+            </div>
+            <div style="margin-top: 8px;">
+              <label for="rocket-stab-toggle" style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:11px;">
+                <input type="checkbox" id="rocket-stab-toggle" ${this.state.rocketStabilityEnabled ? 'checked' : ''} />
+                <span>Show 3D X<sub>cp</sub> & X<sub>cg</sub> Markers</span>
+              </label>
+            </div>
+            <div class="slider-group" style="margin-top: 6px;">
+              <div style="display:flex; justify-content:space-between; font-size:11px; color:#94a3b8;">
+                <span>Center of Gravity (X<sub>cg</sub>):</span>
+                <span id="xcg-val" class="val-highlight">${this.state.rocketXcgOffset.toFixed(2)} m</span>
+              </div>
+              <input type="range" id="xcg-slider" min="-1.5" max="1.5" step="0.05" value="${this.state.rocketXcgOffset}" />
+            </div>
+            <div id="stability-stats-container" style="background:rgba(15,23,42,0.6); padding:8px; border-radius:6px; border:1px solid rgba(148,163,184,0.15); margin-top:8px;">
+              ${this.rocketStability ? `
+                <div class="stat-row" style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                  <span style="color:var(--text-muted);">Center of Pressure (X<sub>cp</sub>):</span>
+                  <strong style="color:var(--accent-cyan); font-family:var(--font-mono);">${this.rocketStability.xcpMeters.toFixed(2)} m</strong>
+                </div>
+                <div class="stat-row" style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                  <span style="color:var(--text-muted);">Static Margin:</span>
+                  <strong style="color:${this.rocketStability.isStable ? '#10b981' : '#ef4444'}; font-family:var(--font-mono);">
+                    ${this.rocketStability.staticMarginCalibers.toFixed(2)} calibers
+                  </strong>
+                </div>
+                <div style="font-size:10.5px; line-height:1.35; color:#94a3b8; margin-top:4px;">
+                  ${this.rocketStability.explanation}
+                </div>
+              ` : '<div style="color:var(--text-muted); font-size:11px;">Awaiting aerodynamic convergence...</div>'}
+            </div>
+          </div>
+        ` : `
+          <div class="domain-card" style="background:rgba(30,41,59,0.5); padding:10px; border-radius:6px; border:1px solid rgba(148,163,184,0.15);">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <strong style="color:#f59e0b; font-size:11.5px;">Building Roof Suction & Storm Loads</strong>
+            </div>
+            <p style="font-size:10.5px; color:#94a3b8; margin-top:4px;">
+              Scales measured wake suction (negative C<sub>p</sub>) to severe storm conditions:
+            </p>
+            <table style="width:100%; margin-top:8px; font-size:11px; border-collapse:collapse;">
+              <thead>
+                <tr style="border-bottom:1px solid rgba(148,163,184,0.2); color:#94a3b8; text-align:left;">
+                  <th style="padding:3px 2px;">Storm</th>
+                  <th style="padding:3px 2px; text-align:right;">Wind</th>
+                  <th style="padding:3px 2px; text-align:right;">Roof Uplift</th>
+                </tr>
+              </thead>
+              <tbody id="storm-ratings-tbody">
+                ${this.buildingStormReport ? this.buildingStormReport.ratings.slice(1, 5).map(r => `
+                  <tr style="border-bottom: 1px solid rgba(148, 163, 184, 0.1);">
+                    <td style="padding: 3px 2px; color: #f8fafc;">${r.ratingName.split('(')[0]}</td>
+                    <td style="padding: 3px 2px; text-align: right; font-family: var(--font-mono); color: var(--accent-cyan);">${r.stormWindKmh.toFixed(0)} km/h</td>
+                    <td style="padding: 3px 2px; text-align: right; font-family: var(--font-mono); color: ${r.upliftForceN > 0 ? '#f59e0b' : '#38bdf8'};">
+                      ${r.upliftForceN >= 0 ? '+' : ''}${r.upliftForceN.toFixed(0)} N <small>(${r.upliftForceKgf.toFixed(0)} kgf)</small>
+                    </td>
+                  </tr>
+                `).join('') : '<tr><td colspan="3" style="padding:4px; color:#94a3b8;">Simulating flow...</td></tr>'}
+              </tbody>
+            </table>
+          </div>
+        `}
+
+        <!-- A/B Specimen Comparison -->
+        <div class="domain-card" style="background:rgba(30,41,59,0.5); padding:10px; border-radius:6px; border:1px solid rgba(148,163,184,0.15); margin-top: 10px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <strong style="color:#f8fafc; font-size:11.5px;">⚖ A/B Specimen Comparison</strong>
+            <div style="display:flex; gap:4px; align-items:center;">
+              <button type="button" class="btn-secondary" id="btn-save-baseline" style="padding:3px 8px; font-size:11px;">📌 Save Run A</button>
+              <span id="ab-clear-slot">
+                ${this.abComparison ? '<button type="button" class="btn-secondary" id="btn-clear-baseline" style="padding:3px 8px; font-size:11px; color:#f87171;">✖ Clear</button>' : ''}
+              </span>
+            </div>
+          </div>
+          <div id="ab-comparison-content">
+            ${this.abComparison ? `
+              <div style="background:rgba(15,23,42,0.6); padding:8px; border-radius:6px; border:1px solid rgba(148,163,184,0.15); margin-top:8px;">
+                <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:3px;">
+                  <span style="color:#94a3b8;">Run A (Baseline):</span>
+                  <strong style="color:#f8fafc;">${this.abComparison.baseline.specimenName} · Cd ${this.abComparison.baseline.cd.toFixed(3)}</strong>
+                </div>
+                <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:6px;">
+                  <span style="color:#94a3b8;">Run B (Live):</span>
+                  <strong style="color:#38bdf8;">${this.abComparison.live.specimenName} · Cd ${this.abComparison.live.cd.toFixed(3)}</strong>
+                </div>
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                  <span class="${this.abComparison.isDragReduced ? 'badge-ok' : 'badge-warn'}" style="font-size:10.5px;">
+                    ΔCd ${this.abComparison.deltaCd >= 0 ? '+' : ''}${this.abComparison.deltaCd.toFixed(3)} (${this.abComparison.percentDeltaCd >= 0 ? '+' : ''}${this.abComparison.percentDeltaCd.toFixed(1)}%)
+                  </span>
+                  <span class="badge-accent" style="font-size:10.5px;">
+                    ΔLift ${this.abComparison.deltaLiftForceN >= 0 ? '+' : ''}${this.abComparison.deltaLiftForceN.toFixed(1)} N
+                  </span>
+                </div>
+              </div>
+            ` : `
+              <p style="font-size:10.5px; color:#94a3b8; margin-top:6px;">
+                Click <strong>Save Run A</strong> to freeze current forces, then modify shape or pose to see live comparison deltas.
+              </p>
+            `}
+          </div>
+        </div>
+
+        <!-- Telemetry & Report Export -->
+        <div style="margin-top: 12px;">
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px;">
+            <button type="button" class="btn-secondary" id="btn-export-csv" style="font-weight:600; font-size:11px;">
+              📥 Export CSV
+            </button>
+            <button type="button" class="btn-secondary" id="btn-export-json" style="font-weight:600; font-size:11px;">
+              📄 Export JSON
+            </button>
+          </div>
+          <button type="button" class="btn-secondary" id="btn-snapshot-png" style="width:100%; margin-top:6px; font-weight:600; font-size:11px;">
+            📸 Snapshot Viewport (PNG)
+          </button>
+        </div>
+      </div>
     `;
 
     this.bindEvents();
@@ -320,7 +565,9 @@ export class ControlPanelUI {
       const u = parseFloat(windSlider.value) || 1;
       this.state.windSpeed = u;
       if (windReadout) {
-        windReadout.textContent = `${u.toFixed(1)} m/s (${(u * 3.6).toFixed(0)} km/h | ${(u * 2.23694).toFixed(0)} mph)`;
+        const kmh = (u * LBM_CONSTANTS.SPEED_MPS_TO_KMH).toFixed(0);
+        const mph = (u * LBM_CONSTANTS.SPEED_MPS_TO_MPH).toFixed(0);
+        windReadout.textContent = `${u.toFixed(1)} m/s (${kmh} km/h | ${mph} mph)`;
       }
       this.callbacks.onStateChange(structuredClone(this.state));
     });
@@ -483,6 +730,60 @@ export class ControlPanelUI {
       this.state.probeEnabled = !this.state.probeEnabled;
       this.render();
       this.callbacks.onStateChange(structuredClone(this.state));
+    });
+
+    // Phase 6: Domain Mode Buttons
+    this.container.querySelectorAll<HTMLButtonElement>('[data-domain]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const mode = btn.getAttribute('data-domain') as WindTunnelState['domainWorkflowMode'];
+        this.state.domainWorkflowMode = mode;
+        this.state.groundPlaneEnabled = mode === 'ground_atmospheric';
+        this.render();
+        this.callbacks.onStateChange(structuredClone(this.state));
+      });
+    });
+
+    // Phase 6: Rocket Stability Toggle & Xcg Slider
+    const stabToggle = this.container.querySelector<HTMLInputElement>('#rocket-stab-toggle');
+    stabToggle?.addEventListener('change', () => {
+      this.state.rocketStabilityEnabled = stabToggle.checked;
+      this.callbacks.onStateChange(structuredClone(this.state));
+    });
+
+    const xcgSlider = this.container.querySelector<HTMLInputElement>('#xcg-slider');
+    const xcgVal = this.container.querySelector<HTMLElement>('#xcg-val');
+    xcgSlider?.addEventListener('input', () => {
+      const val = parseFloat(xcgSlider.value) || 0;
+      this.state.rocketXcgOffset = val;
+      if (xcgVal) xcgVal.textContent = `${val.toFixed(2)} m`;
+      this.callbacks.onStateChange(structuredClone(this.state));
+    });
+
+    // Phase 6: A/B Comparison Buttons
+    const saveBaseBtn = this.container.querySelector<HTMLButtonElement>('#btn-save-baseline');
+    saveBaseBtn?.addEventListener('click', () => {
+      this.callbacks.onSaveBaseline?.();
+    });
+
+    const clearBaseBtn = this.container.querySelector<HTMLButtonElement>('#btn-clear-baseline');
+    clearBaseBtn?.addEventListener('click', () => {
+      this.callbacks.onClearBaseline?.();
+    });
+
+    // Phase 6: Export Buttons
+    const exportCsvBtn = this.container.querySelector<HTMLButtonElement>('#btn-export-csv');
+    exportCsvBtn?.addEventListener('click', () => {
+      this.callbacks.onExportCSV?.();
+    });
+
+    const exportJsonBtn = this.container.querySelector<HTMLButtonElement>('#btn-export-json');
+    exportJsonBtn?.addEventListener('click', () => {
+      this.callbacks.onExportJSON?.();
+    });
+
+    const snapshotBtn = this.container.querySelector<HTMLButtonElement>('#btn-snapshot-png');
+    snapshotBtn?.addEventListener('click', () => {
+      this.callbacks.onSnapshotViewport?.();
     });
   }
 }

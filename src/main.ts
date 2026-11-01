@@ -12,8 +12,8 @@ import { createPresetGeometry, PRESET_MODELS } from './geometry/presets';
 import { computeMeshStats, normalizeAndCenterGeometry, parseSTL } from './geometry/stlLoader';
 import { voxelizeMeshToLattice, type VoxelGridResult } from './geometry/voxelizer';
 import { computeAerodynamicTelemetry } from './solver/fluidProperties';
-import { computeTrueMeshSurfaceArea } from './solver/forceIntegrator';
-import { LBM_CONSTANTS } from './solver/lbmConstants';
+import { computeTrueMeshSurfaceArea, type AerodynamicForceReadout } from './solver/forceIntegrator';
+import { computeOptimalLatticeSpeed, LBM_CONSTANTS } from './solver/lbmConstants';
 import { LBMEngine } from './solver/lbmEngine';
 import { WindTunnelViewport } from './render/viewport';
 import { PresetSelectorUI } from './ui/presetSelector';
@@ -21,6 +21,16 @@ import { ControlPanelUI } from './ui/controlPanel';
 import { TelemetryHudUI } from './ui/telemetryHud';
 import { ConvergenceChartUI } from './ui/convergenceChart';
 import { runFullPhysicsValidationSuite } from './validation/testRunner';
+import {
+  computeABComparison,
+  computeBuildingStormReport,
+  computeRocketStability,
+  exportRunReportToJSON,
+  exportTelemetryToCSV,
+  type BaselineSnapshot,
+  type SimulationRunMetadata,
+} from './solver/domainWorkflows';
+import { captureViewportWithStamp, downloadFile } from './utils/exportUtils';
 
 async function bootstrapWindTunnelApp(): Promise<void> {
   const state: WindTunnelState = {
@@ -54,6 +64,9 @@ async function bootstrapWindTunnelApp(): Promise<void> {
     streamlineRakeY: 0,
     streamlineRakeZ: 0,
     probeEnabled: false,
+    domainWorkflowMode: 'freestream',
+    rocketStabilityEnabled: false,
+    rocketXcgOffset: 0.0,
   };
 
   // Mount DOM containers
@@ -83,6 +96,8 @@ async function bootstrapWindTunnelApp(): Promise<void> {
   let currentModelName = PRESET_MODELS.sphere.name;
   let currentMeshStats: MeshStats = computeMeshStats(currentGeometry, currentModelName, state.transform);
   let latestVoxelResult: VoxelGridResult | null = null;
+  let latestForceReadout: AerodynamicForceReadout | null = null;
+  let baselineSnapshot: BaselineSnapshot | null = null;
 
   const computeLatticeViscosity = (reynolds: number, charLenM: number, dx: number, uLat: number) => {
     const lLat = Math.max(2.0, charLenM / dx);
@@ -105,7 +120,7 @@ async function bootstrapWindTunnelApp(): Promise<void> {
       tunnel: state.tunnel,
     });
 
-    const uLat = Math.min(0.11, Math.max(0.04, 0.06 + (state.windSpeed / 120) * 0.045));
+    const uLat = computeOptimalLatticeSpeed(state.windSpeed);
 
     if (recomputeVoxels || !latestVoxelResult) {
       const report = gpuContext.getReport();
@@ -194,7 +209,13 @@ async function bootstrapWindTunnelApp(): Promise<void> {
       voxelizationTimeMs: latestVoxelResult.voxelizationTimeMs,
     };
 
-    hud.updateMeshAndTelemetry(currentMeshStats, aero, state.solverMode, voxelTel);
+    hud.updateMeshAndTelemetry(
+      currentMeshStats,
+      aero,
+      state.solverMode,
+      voxelTel,
+      state.groundPlaneEnabled
+    );
     eventBus.emit('telemetry:updated', aero);
   };
 
@@ -230,6 +251,150 @@ async function bootstrapWindTunnelApp(): Promise<void> {
     },
     onResetFlow: () => {
       lbmEngine.resetFlow();
+    },
+    onSaveBaseline: () => {
+      if (!latestForceReadout) return;
+      const aero = computeAerodynamicTelemetry({
+        windSpeed: state.windSpeed,
+        characteristicLength: currentMeshStats.characteristicLength,
+        frontalArea: currentMeshStats.frontalArea,
+        fluid: state.fluid,
+        tunnel: state.tunnel,
+      });
+      baselineSnapshot = {
+        id: `run_a_${Date.now()}`,
+        label: `Run A (${currentModelName})`,
+        timestamp: new Date().toISOString(),
+        specimenName: currentModelName,
+        windSpeedMps: state.windSpeed,
+        frontalAreaM2: currentMeshStats.frontalArea,
+        reynolds: aero.reynoldsNumber,
+        cd: latestForceReadout.meanCd,
+        cl: latestForceReadout.meanCl,
+        cm: latestForceReadout.pitchingMomentCm,
+        dragForceN: latestForceReadout.dragForceNewtons,
+        liftForceN: latestForceReadout.liftForceNewtons,
+        centerOfPressureX: latestForceReadout.centerOfPressureX,
+      };
+      const delta = computeABComparison(baselineSnapshot, baselineSnapshot);
+      controlPanel.setABComparison(delta);
+    },
+    onClearBaseline: () => {
+      baselineSnapshot = null;
+      controlPanel.setABComparison(null);
+    },
+    onExportCSV: () => {
+      if (!latestForceReadout) return;
+      const aero = computeAerodynamicTelemetry({
+        windSpeed: state.windSpeed,
+        characteristicLength: currentMeshStats.characteristicLength,
+        frontalArea: currentMeshStats.frontalArea,
+        fluid: state.fluid,
+        tunnel: state.tunnel,
+      });
+      const csvContent = exportTelemetryToCSV(
+        latestForceReadout.history.map((h) => ({
+          step: h.step,
+          timeSec: h.step * 0.001,
+          cd: h.cd,
+          cl: h.cl,
+          cm: latestForceReadout!.pitchingMomentCm,
+          dragForceN: latestForceReadout!.dragForceNewtons,
+          liftForceN: latestForceReadout!.liftForceNewtons,
+          xcpMeters: latestForceReadout!.centerOfPressureX,
+        })),
+        {
+          specimenName: currentModelName,
+          windSpeedMps: state.windSpeed,
+          reynolds: aero.reynoldsNumber,
+          meshStats: currentMeshStats,
+          meanCd: latestForceReadout.meanCd,
+          meanCl: latestForceReadout.meanCl,
+          meanCm: latestForceReadout.pitchingMomentCm,
+          centerOfPressureX: latestForceReadout.centerOfPressureX,
+          dragForceN: latestForceReadout.dragForceNewtons,
+          liftForceN: latestForceReadout.liftForceNewtons,
+        }
+      );
+      const cleanName = currentModelName.toLowerCase().replace(/[^a-z0-9]/g, '_');
+      downloadFile(`aerosim_${cleanName}_telemetry.csv`, csvContent, 'text/csv');
+    },
+    onExportJSON: () => {
+      if (!latestForceReadout) return;
+      const aero = computeAerodynamicTelemetry({
+        windSpeed: state.windSpeed,
+        characteristicLength: currentMeshStats.characteristicLength,
+        frontalArea: currentMeshStats.frontalArea,
+        fluid: state.fluid,
+        tunnel: state.tunnel,
+      });
+      const metadata: SimulationRunMetadata = {
+        timestamp: new Date().toISOString(),
+        specimenName: currentModelName,
+        presetId: state.activePreset,
+        solverMode: state.solverMode,
+        groundPlaneEnabled: state.groundPlaneEnabled,
+        windSpeedMps: state.windSpeed,
+        fluid: state.fluid,
+        tunnel: state.tunnel,
+        meshStats: currentMeshStats,
+        meanCd: latestForceReadout.meanCd,
+        meanCl: latestForceReadout.meanCl,
+        meanCm: latestForceReadout.pitchingMomentCm,
+        centerOfPressureX: latestForceReadout.centerOfPressureX,
+        dragForceN: latestForceReadout.dragForceNewtons,
+        liftForceN: latestForceReadout.liftForceNewtons,
+        reynolds: aero.reynoldsNumber,
+        dynamicPressurePa: aero.dynamicPressurePa,
+        blockageRatioPercent: aero.blockageRatioPercent,
+        totalSteps:
+          latestForceReadout.history.length > 0
+            ? latestForceReadout.history[latestForceReadout.history.length - 1].step
+            : 0,
+        isConverged: latestForceReadout.isConverged,
+      };
+      const jsonContent = exportRunReportToJSON(
+        metadata,
+        latestForceReadout.history.map((h) => ({
+          step: h.step,
+          timeSec: h.step * 0.001,
+          cd: h.cd,
+          cl: h.cl,
+          cm: latestForceReadout!.pitchingMomentCm,
+          dragForceN: latestForceReadout!.dragForceNewtons,
+          liftForceN: latestForceReadout!.liftForceNewtons,
+          xcpMeters: latestForceReadout!.centerOfPressureX,
+        }))
+      );
+      const cleanName = currentModelName.toLowerCase().replace(/[^a-z0-9]/g, '_');
+      downloadFile(`aerosim_${cleanName}_report.json`, jsonContent, 'application/json');
+    },
+    onSnapshotViewport: () => {
+      if (!latestForceReadout) return;
+      const aero = computeAerodynamicTelemetry({
+        windSpeed: state.windSpeed,
+        characteristicLength: currentMeshStats.characteristicLength,
+        frontalArea: currentMeshStats.frontalArea,
+        fluid: state.fluid,
+        tunnel: state.tunnel,
+      });
+      captureViewportWithStamp(viewport.getCanvas(), {
+        specimenName: currentModelName,
+        windSpeedMps: state.windSpeed,
+        reynoldsNumber: aero.reynoldsNumber,
+        meanCd: latestForceReadout.meanCd,
+        meanCl: latestForceReadout.meanCl,
+        dragForceN: latestForceReadout.dragForceNewtons,
+        liftForceN: latestForceReadout.liftForceNewtons,
+        mode: state.solverMode === 'high_precision' ? 'High-Precision Mode' : 'Interactive Mode',
+      })
+        .then((blob) => {
+          const cleanName = currentModelName.toLowerCase().replace(/[^a-z0-9]/g, '_');
+          downloadFile(`aerosim_${cleanName}_snapshot.png`, blob, 'image/png');
+        })
+        .catch((err) => {
+          console.error('Failed to create viewport snapshot:', err);
+        });
     },
   });
 
@@ -324,7 +489,7 @@ async function bootstrapWindTunnelApp(): Promise<void> {
       if (sliceOut) {
         viewport.updateFlowSlicePixels(sliceOut.width, sliceOut.height, sliceOut.rgba);
         if (sliceOut.macroField) {
-          const uLat = Math.min(0.11, Math.max(0.04, 0.06 + (state.windSpeed / 120) * 0.045));
+          const uLat = computeOptimalLatticeSpeed(state.windSpeed);
           viewport.updateMacroVisualizations({
             voxel: latestVoxelResult,
             ux: sliceOut.macroField.ux,
@@ -342,6 +507,62 @@ async function bootstrapWindTunnelApp(): Promise<void> {
         const mlups = (totalCells * substepsPerFrame) / (dtSec * 1e6);
         hud.updateSolverSteps(sliceOut.stepCount, mlups, sliceOut.forceReadout);
         convergenceChart.updatePlot(sliceOut.forceReadout);
+
+        if (sliceOut.forceReadout) {
+          latestForceReadout = sliceOut.forceReadout;
+          const frc = sliceOut.forceReadout;
+          const aero = computeAerodynamicTelemetry({
+            windSpeed: state.windSpeed,
+            characteristicLength: currentMeshStats.characteristicLength,
+            frontalArea: currentMeshStats.frontalArea,
+            fluid: state.fluid,
+            tunnel: state.tunnel,
+          });
+
+          // 1. Rocket Aerodynamic Stability Analysis
+          const xcgWorld = state.transform.position.x + state.rocketXcgOffset;
+          const stabReport = computeRocketStability(
+            frc.centerOfPressureX,
+            xcgWorld,
+            currentMeshStats.characteristicLength
+          );
+          controlPanel.setRocketStability(stabReport);
+          viewport.updateRocketStabilityMarker({
+            visible: state.rocketStabilityEnabled,
+            xcp: stabReport.xcpMeters,
+            xcg: stabReport.xcgMeters,
+            diameter: currentMeshStats.characteristicLength,
+          });
+
+          // 2. Building Roof Suction & Storm Ratings
+          const stormReport = computeBuildingStormReport(
+            frc.liftForceNewtons,
+            state.windSpeed,
+            state.fluid.density
+          );
+          controlPanel.setBuildingStormReport(stormReport);
+
+          // 3. A/B Comparison Live Update
+          if (baselineSnapshot) {
+            const liveSnapshot: BaselineSnapshot = {
+              id: 'run_b_live',
+              label: `Run B (${currentModelName})`,
+              timestamp: new Date().toISOString(),
+              specimenName: currentModelName,
+              windSpeedMps: state.windSpeed,
+              frontalAreaM2: currentMeshStats.frontalArea,
+              reynolds: aero.reynoldsNumber,
+              cd: frc.meanCd,
+              cl: frc.meanCl,
+              cm: frc.pitchingMomentCm,
+              dragForceN: frc.dragForceNewtons,
+              liftForceN: frc.liftForceNewtons,
+              centerOfPressureX: frc.centerOfPressureX,
+            };
+            const delta = computeABComparison(baselineSnapshot, liveSnapshot);
+            controlPanel.setABComparison(delta);
+          }
+        }
       }
     }
     requestAnimationFrame(tickSolverLoop);

@@ -138,6 +138,10 @@ export interface WindTunnelState {
   streamlineRakeY: number; // -1 .. 1 offset
   streamlineRakeZ: number; // -1 .. 1 offset
   probeEnabled: boolean;
+  // Phase 6: Domain Workflows, Rocket Stability & Export
+  domainWorkflowMode: 'freestream' | 'ground_atmospheric';
+  rocketStabilityEnabled: boolean;
+  rocketXcgOffset: number; // meters from model origin along X (-1 .. +1)
 }
 
 export interface AerodynamicTelemetry {

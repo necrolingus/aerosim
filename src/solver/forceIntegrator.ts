@@ -3,6 +3,7 @@ import type { VoxelGridResult } from '../geometry/voxelizer';
 import {
   D3Q19_DIRECTIONS,
   D3Q19_OPPOSITE,
+  LBM_CONSTANTS,
   LBM_WEIGHTS_F32 as W,
 } from './lbmConstants';
 import type { FluidPreset, TunnelDimensions, Vector3D } from '../core/types';
@@ -283,7 +284,7 @@ export function computeNormalizedForceCoefficients(params: {
   // q_c / q = 1.0 + epsilon * C_d * (A_ref / A_tunnel), with epsilon = 2.5
   const tunnelArea = Math.max(1e-4, tunnel.width * tunnel.height);
   const blockageRatio = Math.min(0.40, frontalAreaM2 / tunnelArea);
-  const maskellFactor = 1.0 + 2.5 * Math.max(0.0, cdRaw) * blockageRatio;
+  const maskellFactor = 1.0 + LBM_CONSTANTS.MASKELL_EPSILON * Math.max(0.0, cdRaw) * blockageRatio;
   const cdCorrected = cdRaw / maskellFactor;
 
   // Center of pressure X_cp (streamwise coordinate in meters from model center)
@@ -292,17 +293,6 @@ export function computeNormalizedForceCoefficients(params: {
     Math.abs(fyLat) > 1e-5
       ? Math.max(-characteristicLengthM * 0.5, Math.min(characteristicLengthM * 0.5, -(mzLat / fyLat) * dx))
       : 0.0;
-
-  return {
-    cdRaw,
-    cdCorrected,
-    cl,
-    cmPitch,
-    centerOfPressureX,
-    fxLattice: fxLat,
-    fyLattice: fyLat,
-    fzLattice: fzLat,
-  };
 
   return {
     cdRaw,
@@ -391,11 +381,11 @@ export class ForceConvergenceTracker {
     const qArea = dynPressurePa * sample.frontalAreaM2;
 
     const dragForceNewtons = qArea * meanCd;
-    const dragForceLbs = dragForceNewtons * 0.224808943;
-    const dragForceKgf = dragForceNewtons * 0.101971621;
+    const dragForceLbs = dragForceNewtons * LBM_CONSTANTS.NEWTONS_TO_LBF;
+    const dragForceKgf = dragForceNewtons * LBM_CONSTANTS.NEWTONS_TO_KGF;
 
     const liftForceNewtons = qArea * meanCl;
-    const liftForceLbs = liftForceNewtons * 0.224808943;
+    const liftForceLbs = liftForceNewtons * LBM_CONSTANTS.NEWTONS_TO_LBF;
 
     return {
       instantCd: sample.cd,

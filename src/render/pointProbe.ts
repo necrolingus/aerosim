@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { FluidPreset, TunnelDimensions } from '../core/types';
 import type { VoxelGridResult } from '../geometry/voxelizer';
 import { sampleVelocityTrilinear } from './streamlines';
+import { LBM_CONSTANTS } from '../solver/lbmConstants';
 
 export interface ProbeReadout {
   worldPos: { x: number; y: number; z: number };
@@ -65,14 +66,14 @@ export function computeProbePhysics(params: {
   const uyPhys = localUy * velScale;
   const uzPhys = localUz * velScale;
   const speedMps = Math.sqrt(uxPhys * uxPhys + uyPhys * uyPhys + uzPhys * uzPhys);
-  const speedMph = speedMps * 2.23694;
+  const speedMph = speedMps * LBM_CONSTANTS.SPEED_MPS_TO_MPH;
 
   const qDynamic = 0.5 * fluid.density * windSpeedMps * windSpeedMps;
 
   // LBM pressure: p = cs^2 * rho, where cs^2 = 1/3
   // Cp = (cs^2 * (rho - 1.0)) / (0.5 * uInletLattice^2)
   const qLat = 0.5 * 1.0 * uInletLattice * uInletLattice;
-  const pressureCoeffCp = ((1.0 / 3.0) * (localRho - 1.0)) / Math.max(1e-6, qLat);
+  const pressureCoeffCp = (LBM_CONSTANTS.CS_SQ * (localRho - 1.0)) / Math.max(1e-6, qLat);
 
   // Gauge pressure: Delta p = Cp * q_inf
   const gaugePressurePa = pressureCoeffCp * qDynamic;

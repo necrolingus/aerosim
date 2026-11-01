@@ -65,7 +65,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
     sliceH = ny;
   }
 
-  let pixelIdx = gid.x;
+  let pixelIdx = getGlobal1DIndex(gid);
   if (pixelIdx >= sliceW * sliceH) {
     return;
   }
