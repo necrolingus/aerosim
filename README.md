@@ -761,3 +761,10 @@ aerosim/
 
 ## License
 MIT License. Free and open-source for educational, research, and commercial aerodynamic simulation.
+
+## Hosting
+On CloudFlare pages, use the following settings:
+ - Framework preset: None
+ - Build command: npm run build
+ - Build output directory: dist
+ - Root directory: (leave blank / empty)
