@@ -35,33 +35,27 @@ export class ControlPanelUI {
   public setABComparison(delta: ABComparisonDelta | null): void {
     this.abComparison = delta;
     const box = this.container.querySelector('#ab-comparison-content');
-    const clearSlot = this.container.querySelector('#ab-clear-slot');
-    if (clearSlot) {
-      clearSlot.innerHTML = delta
-        ? '<button type="button" class="btn-secondary" id="btn-clear-baseline" style="padding:3px 8px; font-size:11px; color:#f87171;">✖ Clear</button>'
-        : '';
-      const clearBtn = clearSlot.querySelector<HTMLButtonElement>('#btn-clear-baseline');
-      clearBtn?.addEventListener('click', () => {
-        this.callbacks.onClearBaseline?.();
-      });
+    const clearBtn = this.container.querySelector<HTMLButtonElement>('#btn-clear-baseline');
+    if (clearBtn) {
+      clearBtn.style.display = delta ? 'inline-block' : 'none';
     }
     if (box) {
       if (delta) {
         box.innerHTML = `
-          <div style="background:rgba(15,23,42,0.6); padding:8px; border-radius:6px; border:1px solid rgba(148,163,184,0.15); margin-top:8px;">
-            <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:3px;">
-              <span style="color:#94a3b8;">Run A (Baseline):</span>
-              <strong style="color:#f8fafc;">${delta.baseline.specimenName} · Cd ${delta.baseline.cd.toFixed(3)}</strong>
+          <div style="background:var(--bg-input); padding:8px 10px; border-radius:3px; border:1px solid var(--border-subtle); margin-top:8px;">
+            <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:4px;">
+              <span style="color:var(--text-muted);">Run A (Baseline):</span>
+              <strong style="color:var(--text-main); font-family:var(--font-mono);">${delta.baseline.specimenName} · Cd ${delta.baseline.cd.toFixed(3)}</strong>
             </div>
             <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:6px;">
-              <span style="color:#94a3b8;">Run B (Live):</span>
-              <strong style="color:#38bdf8;">${delta.live.specimenName} · Cd ${delta.live.cd.toFixed(3)}</strong>
+              <span style="color:var(--text-muted);">Run B (Live):</span>
+              <strong style="color:var(--accent-orange); font-family:var(--font-mono);">${delta.live.specimenName} · Cd ${delta.live.cd.toFixed(3)}</strong>
             </div>
             <div style="display:flex; gap:6px; flex-wrap:wrap;">
-              <span class="${delta.isDragReduced ? 'badge-ok' : 'badge-warn'}" style="font-size:10.5px;">
+              <span class="${delta.isDragReduced ? 'badge-ok' : 'badge-warn'}" style="font-size:10px;">
                 ΔCd ${delta.deltaCd >= 0 ? '+' : ''}${delta.deltaCd.toFixed(3)} (${delta.percentDeltaCd >= 0 ? '+' : ''}${delta.percentDeltaCd.toFixed(1)}%)
               </span>
-              <span class="badge-accent" style="font-size:10.5px;">
+              <span class="badge-neutral" style="font-size:10px;">
                 ΔLift ${delta.deltaLiftForceN >= 0 ? '+' : ''}${delta.deltaLiftForceN.toFixed(1)} N
               </span>
             </div>
@@ -69,8 +63,8 @@ export class ControlPanelUI {
         `;
       } else {
         box.innerHTML = `
-          <p style="font-size:10.5px; color:#94a3b8; margin-top:6px;">
-            Click <strong>Save Run A</strong> to freeze current forces, then modify shape or pose to see live comparison deltas.
+          <p style="font-size:10.5px; color:var(--text-muted); margin-top:6px; line-height:1.45;">
+            Click <strong>Capture Run A</strong> to freeze reference forces, then modify shape, scale, or orientation to measure live aerodynamic deltas.
           </p>
         `;
       }
@@ -240,10 +234,10 @@ export class ControlPanelUI {
           <label>Target Solver Resolution Mode</label>
           <div class="mode-switch">
             <button type="button" class="mode-btn ${this.state.solverMode === 'interactive' ? 'active' : ''}" data-mode="interactive">
-              ⚡ Interactive (60 FPS)
+              Interactive (60 FPS)
             </button>
             <button type="button" class="mode-btn ${this.state.solverMode === 'high_precision' ? 'active' : ''}" data-mode="high_precision">
-              🎯 High-Precision Lock
+              High-Precision Lock
             </button>
           </div>
         </div>
@@ -321,10 +315,10 @@ export class ControlPanelUI {
             <span class="val-highlight">${this.state.vortexTubesEnabled ? 'ACTIVE' : 'OFF'}</span>
           </div>
           <div class="btn-row-2">
-            <button type="button" id="btn-toggle-vortex" class="btn-secondary ${this.state.vortexTubesEnabled ? 'btn-active-highlight' : ''}">${this.state.vortexTubesEnabled ? '🌀 Hide Vortex Cores' : '🌀 Show Vortex Cores'}</button>
+            <button type="button" id="btn-toggle-vortex" class="btn-secondary ${this.state.vortexTubesEnabled ? 'btn-active-highlight' : ''}">${this.state.vortexTubesEnabled ? 'Hide Vortex Cores' : 'Show Vortex Cores'}</button>
           </div>
           <div class="slider-group" style="margin-top: 6px;">
-            <label for="vortex-threshold" style="font-size: 11px; color: #94a3b8;">Threshold Q / Qmax</label>
+            <label for="vortex-threshold" style="font-size: 11px; color: var(--text-muted);">Threshold Q / Qmax</label>
             <input type="range" id="vortex-threshold" min="0.05" max="0.80" step="0.05" value="${this.state.vortexThreshold}" />
             <span id="vortex-threshold-val" class="val-highlight" style="font-size: 11px;">${Math.round(this.state.vortexThreshold * 100)}%</span>
           </div>
@@ -336,14 +330,14 @@ export class ControlPanelUI {
             <span class="val-highlight">${this.state.streamlinesEnabled ? 'ACTIVE' : 'OFF'}</span>
           </div>
           <div class="btn-row-2">
-            <button type="button" id="btn-toggle-streamlines" class="btn-secondary ${this.state.streamlinesEnabled ? 'btn-active-highlight' : ''}">${this.state.streamlinesEnabled ? '💨 Hide Smoke Rake' : '💨 Inject Smoke Streamlines'}</button>
+            <button type="button" id="btn-toggle-streamlines" class="btn-secondary ${this.state.streamlinesEnabled ? 'btn-active-highlight' : ''}">${this.state.streamlinesEnabled ? 'Stop Smoke Rake' : 'Inject Smoke Streamlines'}</button>
           </div>
           <div class="slider-group" style="margin-top: 6px;">
-            <label for="rake-y-slider" style="font-size: 11px; color: #94a3b8;">Rake Height (Y)</label>
+            <label for="rake-y-slider" style="font-size: 11px; color: var(--text-muted);">Rake Height (Y)</label>
             <input type="range" id="rake-y-slider" min="-0.8" max="0.8" step="0.05" value="${this.state.streamlineRakeY}" />
           </div>
           <div class="slider-group" style="margin-top: 4px;">
-            <label for="rake-z-slider" style="font-size: 11px; color: #94a3b8;">Rake Lateral (Z)</label>
+            <label for="rake-z-slider" style="font-size: 11px; color: var(--text-muted);">Rake Lateral (Z)</label>
             <input type="range" id="rake-z-slider" min="-0.8" max="0.8" step="0.05" value="${this.state.streamlineRakeZ}" />
           </div>
         </div>
@@ -354,7 +348,7 @@ export class ControlPanelUI {
             <span class="val-highlight">${this.state.probeEnabled ? 'ACTIVE' : 'OFF'}</span>
           </div>
           <div class="btn-row-2">
-            <button type="button" id="btn-toggle-probe" class="btn-secondary ${this.state.probeEnabled ? 'btn-active-highlight' : ''}">${this.state.probeEnabled ? '🎯 Deactivate Probe' : '🎯 Activate 3D Point Probe'}</button>
+            <button type="button" id="btn-toggle-probe" class="btn-secondary ${this.state.probeEnabled ? 'btn-active-highlight' : ''}">${this.state.probeEnabled ? 'Deactivate Point Probe' : 'Activate 3D Point Probe'}</button>
           </div>
         </div>
       </div>
@@ -369,10 +363,10 @@ export class ControlPanelUI {
           <label>Workflow Persona Mode</label>
           <div class="btn-row-2">
             <button type="button" class="gizmo-btn ${this.state.domainWorkflowMode === 'freestream' ? 'active' : ''}" data-domain="freestream">
-              🚀 Freestream (Rockets)
+              Freestream (Rockets)
             </button>
             <button type="button" class="gizmo-btn ${this.state.domainWorkflowMode === 'ground_atmospheric' ? 'active' : ''}" data-domain="ground_atmospheric">
-              🏡 Ground ABL (Sheds)
+              Ground ABL (Sheds)
             </button>
           </div>
         </div>
@@ -448,26 +442,24 @@ export class ControlPanelUI {
         `}
 
         <!-- A/B Specimen Comparison -->
-        <div class="domain-card" style="background:rgba(30,41,59,0.5); padding:10px; border-radius:6px; border:1px solid rgba(148,163,184,0.15); margin-top: 10px;">
+        <div class="domain-card" style="background:var(--bg-card); padding:10px; border-radius:6px; border:1px solid var(--border-subtle); margin-top: 10px;">
           <div style="display:flex; justify-content:space-between; align-items:center;">
-            <strong style="color:#f8fafc; font-size:11.5px;">⚖ A/B Specimen Comparison</strong>
+            <strong style="color:var(--text-main); font-size:11px; letter-spacing:0.3px;">A/B SPECIMEN DELTA</strong>
             <div style="display:flex; gap:4px; align-items:center;">
-              <button type="button" class="btn-secondary" id="btn-save-baseline" style="padding:3px 8px; font-size:11px;">📌 Save Run A</button>
-              <span id="ab-clear-slot">
-                ${this.abComparison ? '<button type="button" class="btn-secondary" id="btn-clear-baseline" style="padding:3px 8px; font-size:11px; color:#f87171;">✖ Clear</button>' : ''}
-              </span>
+              <button type="button" class="btn-secondary" id="btn-save-baseline" style="padding:3px 8px; font-size:10.5px; font-family:var(--font-mono);">CAPTURE RUN A</button>
+              <button type="button" class="btn-secondary" id="btn-clear-baseline" style="padding:3px 8px; font-size:10.5px; color:var(--accent-red); font-family:var(--font-mono); display:${this.abComparison ? 'inline-block' : 'none'};">CLEAR</button>
             </div>
           </div>
           <div id="ab-comparison-content">
             ${this.abComparison ? `
-              <div style="background:rgba(15,23,42,0.6); padding:8px; border-radius:6px; border:1px solid rgba(148,163,184,0.15); margin-top:8px;">
+              <div style="background:rgba(18,21,26,0.85); padding:8px; border-radius:6px; border:1px solid var(--border-subtle); margin-top:8px;">
                 <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:3px;">
-                  <span style="color:#94a3b8;">Run A (Baseline):</span>
-                  <strong style="color:#f8fafc;">${this.abComparison.baseline.specimenName} · Cd ${this.abComparison.baseline.cd.toFixed(3)}</strong>
+                  <span style="color:var(--text-muted);">Run A (Baseline):</span>
+                  <strong style="color:var(--text-main); font-family:var(--font-mono);">${this.abComparison.baseline.specimenName} · Cd ${this.abComparison.baseline.cd.toFixed(3)}</strong>
                 </div>
                 <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:6px;">
-                  <span style="color:#94a3b8;">Run B (Live):</span>
-                  <strong style="color:#38bdf8;">${this.abComparison.live.specimenName} · Cd ${this.abComparison.live.cd.toFixed(3)}</strong>
+                  <span style="color:var(--text-muted);">Run B (Live):</span>
+                  <strong style="color:var(--accent-orange); font-family:var(--font-mono);">${this.abComparison.live.specimenName} · Cd ${this.abComparison.live.cd.toFixed(3)}</strong>
                 </div>
                 <div style="display:flex; gap:6px; flex-wrap:wrap;">
                   <span class="${this.abComparison.isDragReduced ? 'badge-ok' : 'badge-warn'}" style="font-size:10.5px;">
@@ -479,8 +471,8 @@ export class ControlPanelUI {
                 </div>
               </div>
             ` : `
-              <p style="font-size:10.5px; color:#94a3b8; margin-top:6px;">
-                Click <strong>Save Run A</strong> to freeze current forces, then modify shape or pose to see live comparison deltas.
+              <p style="font-size:10.5px; color:var(--text-muted); margin-top:6px;">
+                Click <strong>Capture Run A</strong> to freeze reference forces, then modify shape, scale, or orientation to measure live aerodynamic deltas.
               </p>
             `}
           </div>
@@ -489,15 +481,15 @@ export class ControlPanelUI {
         <!-- Telemetry & Report Export -->
         <div style="margin-top: 12px;">
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px;">
-            <button type="button" class="btn-secondary" id="btn-export-csv" style="font-weight:600; font-size:11px;">
-              📥 Export CSV
+            <button type="button" class="btn-secondary" id="btn-export-csv" style="font-weight:600; font-size:11px; letter-spacing:0.3px;">
+              EXPORT CSV
             </button>
-            <button type="button" class="btn-secondary" id="btn-export-json" style="font-weight:600; font-size:11px;">
-              📄 Export JSON
+            <button type="button" class="btn-secondary" id="btn-export-json" style="font-weight:600; font-size:11px; letter-spacing:0.3px;">
+              EXPORT JSON
             </button>
           </div>
-          <button type="button" class="btn-secondary" id="btn-snapshot-png" style="width:100%; margin-top:6px; font-weight:600; font-size:11px;">
-            📸 Snapshot Viewport (PNG)
+          <button type="button" class="btn-secondary" id="btn-snapshot-png" style="width:100%; margin-top:6px; font-weight:600; font-size:11px; letter-spacing:0.3px;">
+            CAPTURE VIEWPORT (PNG)
           </button>
         </div>
       </div>
@@ -768,6 +760,13 @@ export class ControlPanelUI {
     const clearBaseBtn = this.container.querySelector<HTMLButtonElement>('#btn-clear-baseline');
     clearBaseBtn?.addEventListener('click', () => {
       this.callbacks.onClearBaseline?.();
+    });
+
+    this.container.addEventListener('click', (e) => {
+      const target = (e.target as HTMLElement).closest('#btn-clear-baseline');
+      if (target) {
+        this.callbacks.onClearBaseline?.();
+      }
     });
 
     // Phase 6: Export Buttons

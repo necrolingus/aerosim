@@ -42,7 +42,7 @@ AeroSim is fully client-side and requires no backend server, Python environment,
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/your-username/aerosim.git
+   git clone https://github.com/necrolingus/aerosim.git
    cd aerosim
    ```
 
@@ -84,7 +84,7 @@ To generate an optimized, self-contained static web bundle:
 ```bash
 npm run build
 ```
-The output files will be written to the `dist/` directory, ready to be hosted on GitHub Pages, Netlify, Vercel, or any static web server. You can preview the production bundle locally with:
+The output files will be written to the `dist/` directory, ready to be hosted on CloudFlare Pages, GitHub Pages, Netlify, Vercel, or any static web server. You can preview the production bundle locally with:
 ```bash
 npm run preview
 ```

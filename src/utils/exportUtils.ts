@@ -44,8 +44,8 @@ export async function captureViewportWithStamp(
     throw new Error('Could not create 2D canvas context for snapshot stamp.');
   }
 
-  // Fill background with scene clear color in case of any transparent areas
-  ctx.fillStyle = '#0b101b';
+  // Fill background with scene clear color in case of any transparent areas (Option 1 Laboratory Slate)
+  ctx.fillStyle = '#f1f5f9';
   ctx.fillRect(0, 0, offscreen.width, offscreen.height);
 
   // Draw WebGPU/Three.js frame
@@ -59,24 +59,24 @@ export async function captureViewportWithStamp(
   const cardX = padding;
   const cardY = offscreen.height - cardHeight - padding;
 
-  // Semi-transparent dark card background
+  // Structured technical telemetry card (Crisp white instrument plate)
   ctx.save();
-  ctx.fillStyle = 'rgba(15, 23, 42, 0.88)'; // slate-900 with 88% opacity
-  ctx.strokeStyle = 'rgba(56, 189, 248, 0.6)'; // sky-400
-  ctx.lineWidth = 2 * scale;
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.96)';
+  ctx.strokeStyle = '#ea580c'; // Aerospace flight-test orange
+  ctx.lineWidth = 1.5 * scale;
   ctx.beginPath();
-  ctx.roundRect(cardX, cardY, cardWidth, cardHeight, 8 * scale);
+  ctx.roundRect(cardX, cardY, cardWidth, cardHeight, 4 * scale);
   ctx.fill();
   ctx.stroke();
 
   // Header Title
-  ctx.fillStyle = '#38bdf8'; // sky-400
-  ctx.font = `bold ${13 * scale}px "Inter", "Segoe UI", sans-serif`;
+  ctx.fillStyle = '#c2410c'; // Flight-test orange
+  ctx.font = `bold ${12 * scale}px "Space Grotesk", sans-serif`;
   ctx.fillText('AEROSIM 3D CFD WIND TUNNEL', cardX + 14 * scale, cardY + 22 * scale);
 
   // Model & Mode Subtitle
-  ctx.fillStyle = '#f8fafc'; // slate-50
-  ctx.font = `${11 * scale}px "Inter", "Segoe UI", sans-serif`;
+  ctx.fillStyle = '#0f172a';
+  ctx.font = `${11 * scale}px "Plus Jakarta Sans", sans-serif`;
   ctx.fillText(
     `${metadata.specimenName} · ${metadata.mode}`,
     cardX + 14 * scale,
@@ -84,8 +84,8 @@ export async function captureViewportWithStamp(
   );
 
   // Metrics Line 1: Wind Speed & Re
-  ctx.fillStyle = '#94a3b8'; // slate-400
-  ctx.font = `${10 * scale}px "Inter", monospace`;
+  ctx.fillStyle = '#475569';
+  ctx.font = `${10 * scale}px "IBM Plex Mono", monospace`;
   ctx.fillText(
     `U∞: ${metadata.windSpeedMps.toFixed(1)} m/s · Re: ${metadata.reynoldsNumber.toLocaleString()}`,
     cardX + 14 * scale,
@@ -93,8 +93,8 @@ export async function captureViewportWithStamp(
   );
 
   // Metrics Line 2: Cd and Drag Force
-  ctx.fillStyle = '#fbbf24'; // amber-400
-  ctx.font = `bold ${11 * scale}px "Inter", monospace`;
+  ctx.fillStyle = '#c2410c';
+  ctx.font = `bold ${11 * scale}px "IBM Plex Mono", monospace`;
   ctx.fillText(
     `Cd: ${metadata.meanCd.toFixed(3)}  (Drag: ${metadata.dragForceN.toFixed(1)} N)`,
     cardX + 14 * scale,
@@ -103,7 +103,7 @@ export async function captureViewportWithStamp(
 
   // Metrics Line 3: Cl and Lift Force
   const liftSign = metadata.liftForceN >= 0 ? '+' : '';
-  ctx.fillStyle = '#34d399'; // emerald-400
+  ctx.fillStyle = '#0f766e'; // Deep aerodynamic teal
   ctx.fillText(
     `Cl: ${metadata.meanCl >= 0 ? '+' : ''}${metadata.meanCl.toFixed(3)}  (Lift: ${liftSign}${metadata.liftForceN.toFixed(1)} N)`,
     cardX + 14 * scale,
@@ -112,7 +112,7 @@ export async function captureViewportWithStamp(
 
   // Timestamp on the right
   ctx.fillStyle = '#64748b'; // slate-500
-  ctx.font = `${9 * scale}px "Inter", monospace`;
+  ctx.font = `${9 * scale}px "IBM Plex Mono", monospace`;
   const timeStr = new Date().toISOString().replace('T', ' ').substring(0, 19);
   ctx.fillText(timeStr, cardX + cardWidth - 130 * scale, cardY + 22 * scale);
 

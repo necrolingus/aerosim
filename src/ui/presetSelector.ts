@@ -62,10 +62,15 @@ export class PresetSelectorUI {
 
         <label class="stl-upload-zone" for="stl-file-input">
           <input type="file" id="stl-file-input" accept=".stl" hidden />
-          <div class="upload-icon">⬆</div>
+          <div class="upload-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+              <path d="M12 18V4M5 11l7-7 7 7" />
+              <path d="M4 20h16" />
+            </svg>
+          </div>
           <div class="upload-text">
             <strong>Upload Custom STL Mesh</strong>
-            <span>Binary or ASCII STL (auto-detects mm / m)</span>
+            <span>Binary or ASCII STL (auto-detects mm / m scale)</span>
           </div>
         </label>
 

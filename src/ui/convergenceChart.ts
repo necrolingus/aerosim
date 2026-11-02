@@ -22,11 +22,11 @@ export class ConvergenceChartUI {
       <div class="convergence-widget">
         <div class="conv-header">
           <div class="conv-title-group">
-            <span class="card-title">LIVE C<sub>d</sub> / C<sub>l</sub> CONVERGENCE & BENCHMARK SUITE</span>
-            <span id="conv-badge" class="badge-warn">⏳ Accumulating Samples...</span>
+            <span class="card-title">C<sub>d</sub> / C<sub>l</sub> CONVERGENCE & BENCHMARK SUITE</span>
+            <span id="conv-badge" class="badge-warn">ACCUMULATING</span>
           </div>
           <button type="button" id="btn-run-benchmarks" class="btn-benchmark">
-            🧪 Run Physics Validation Suite
+            RUN VALIDATION SUITE
           </button>
         </div>
 
@@ -59,15 +59,15 @@ export class ConvergenceChartUI {
     drawer.innerHTML = `
       <div class="benchmark-progress-box">
         <div class="bench-header">
-          <strong style="color:#38bdf8; display:flex; align-items:center; gap:6px;">
-            <span>🔬</span> Running Deep Physics Validation Suite (${currentIndex}/${totalModels})
+          <strong style="display:flex; align-items:center; gap:6px;">
+            <span class="badge-accent">BENCHMARK</span> Deep Physics Validation Suite (${currentIndex}/${totalModels})
           </strong>
         </div>
         <div class="benchmark-progress-notice">
-          Simulating 4 distinct wind tunnels on CPU. High CPU usage is <strong>completely normal and expected</strong> — unadulterated Navier-Stokes physics is running in the background. Please keep this tab active.
+          Simulating 4 independent wind tunnels on CPU. High processor utilization is expected while computing Navier-Stokes momentum exchange.
         </div>
-        <div style="font-size:11px; font-weight:600; color:#f8fafc; margin-top:2px;">
-          Active: <span style="color:#facc15;">${currentModel}</span>
+        <div style="font-size:11px; font-weight:600; color:var(--text-main); margin-top:2px;">
+          Active: <span style="color:var(--accent-orange); font-family:var(--font-mono);">${currentModel}</span>
         </div>
         <div class="benchmark-progress-bar-bg">
           <div class="benchmark-progress-bar-fill" style="width: ${percent}%;"></div>
@@ -80,7 +80,7 @@ export class ConvergenceChartUI {
     this.isRunningBenchmarks = false;
     const btn = this.container.querySelector<HTMLButtonElement>('#btn-run-benchmarks');
     if (btn) {
-      btn.textContent = '✓ Re-Run Physics Validation Suite';
+      btn.textContent = 'RE-RUN BENCHMARKS';
       btn.disabled = false;
       btn.style.opacity = '1.0';
     }
@@ -122,10 +122,10 @@ export class ConvergenceChartUI {
     if (badge) {
       if (readout.isConverged) {
         badge.className = 'badge-ok';
-        badge.textContent = `✓ Converged (${readout.stabilityPercent.toFixed(0)}% stable · ±${readout.stdCd.toFixed(3)})`;
+        badge.textContent = `STABLE (${readout.stabilityPercent.toFixed(0)}% · ±${readout.stdCd.toFixed(3)})`;
       } else {
         badge.className = 'badge-warn';
-        badge.textContent = `⟳ Converging (${readout.stabilityPercent.toFixed(0)}% stable)`;
+        badge.textContent = `CONVERGING (${readout.stabilityPercent.toFixed(0)}%)`;
       }
     }
 
@@ -137,11 +137,11 @@ export class ConvergenceChartUI {
     const h = this.canvas.height;
     ctx.clearRect(0, 0, w, h);
 
-    // Background grid
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.75)';
+    // Background grid (Option 1 Laboratory Light styling)
+    ctx.fillStyle = '#f8fafc';
     ctx.fillRect(0, 0, w, h);
 
-    ctx.strokeStyle = 'rgba(148, 163, 184, 0.14)';
+    ctx.strokeStyle = '#e2e8f0';
     ctx.lineWidth = 1;
     for (let y = 16; y < h; y += 22) {
       ctx.beginPath();
@@ -167,9 +167,9 @@ export class ConvergenceChartUI {
     const yMax = maxVal + pad;
     const mapY = (v: number) => h - 8 - ((v - yMin) / Math.max(1e-5, yMax - yMin)) * (h - 16);
 
-    // Draw Cl curve (Cyan)
-    ctx.strokeStyle = '#22d3ee';
-    ctx.lineWidth = 1.6;
+    // Draw Cl curve (Aerodynamic Teal)
+    ctx.strokeStyle = '#0284c7';
+    ctx.lineWidth = 1.8;
     ctx.beginPath();
     for (let i = 0; i < hist.length; i++) {
       const x = (i / (hist.length - 1)) * (w - 12) + 6;
@@ -179,8 +179,8 @@ export class ConvergenceChartUI {
     }
     ctx.stroke();
 
-    // Draw Cd curve (Amber/Orange)
-    ctx.strokeStyle = '#f59e0b';
+    // Draw Cd curve (Flight-Test Orange)
+    ctx.strokeStyle = '#ea580c';
     ctx.lineWidth = 2.2;
     ctx.beginPath();
     for (let i = 0; i < hist.length; i++) {
@@ -192,10 +192,10 @@ export class ConvergenceChartUI {
     ctx.stroke();
 
     // Legend labels inside canvas
-    ctx.font = '11px JetBrains Mono, monospace';
-    ctx.fillStyle = '#f59e0b';
+    ctx.font = '600 11px "IBM Plex Mono", Consolas, monospace';
+    ctx.fillStyle = '#c2410c';
     ctx.fillText(`Cd: ${readout.meanCd.toFixed(3)}`, 10, 15);
-    ctx.fillStyle = '#22d3ee';
+    ctx.fillStyle = '#0369a1';
     ctx.fillText(`Cl: ${readout.meanCl >= 0 ? '+' : ''}${readout.meanCl.toFixed(3)}`, 95, 15);
   }
 }

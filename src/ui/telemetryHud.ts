@@ -68,8 +68,8 @@ export class TelemetryHudUI {
       if (cdEl) cdEl.innerHTML = `${forceReadout.meanCd.toFixed(3)} <small>±${forceReadout.stdCd.toFixed(3)}</small>`;
       if (cdSubEl) {
         cdSubEl.textContent = forceReadout.isConverged
-          ? `✓ Converged (${forceReadout.stabilityPercent.toFixed(0)}% stable)`
-          : `⟳ Averaging (${forceReadout.stabilityPercent.toFixed(0)}% stable)`;
+          ? `STABLE (${forceReadout.stabilityPercent.toFixed(0)}% · ±${forceReadout.stdCd.toFixed(3)})`
+          : `CONVERGING (${forceReadout.stabilityPercent.toFixed(0)}% stable)`;
       }
       if (clEl) {
         const sign = forceReadout.meanCl >= 0 ? '+' : '';
@@ -108,19 +108,19 @@ export class TelemetryHudUI {
 
     const blockageWarning =
       tel && tel.blockageRatioPercent > 10.0
-        ? `<span class="badge-warn" title="Blockage > 10% increases wall-interference speed-up. Maskell correction active.">⚠ Blockage ${tel.blockageRatioPercent.toFixed(1)}% (Corrected)</span>`
-        : `<span class="badge-ok">Blockage ${tel ? tel.blockageRatioPercent.toFixed(1) : '0.0'}%</span>`;
+        ? `<span class="badge-warn" title="Blockage > 10% increases wall-interference speed-up. Maskell correction active.">BLOCKAGE ${tel.blockageRatioPercent.toFixed(1)}% (CORRECTED)</span>`
+        : `<span class="badge-ok">BLOCKAGE ${tel ? tel.blockageRatioPercent.toFixed(1) : '0.0'}%</span>`;
 
     const watertightBadge = stats?.isWatertight
-      ? `<span class="badge-ok">✓ Manifold Watertight</span>`
-      : `<span class="badge-warn">⚠ ${stats?.openEdgeCount ?? 0} Open Edges</span>`;
+      ? `<span class="badge-ok">MANIFOLD WATERTIGHT</span>`
+      : `<span class="badge-warn">${stats?.openEdgeCount ?? 0} OPEN EDGES</span>`;
 
     this.container.innerHTML = `
       <div class="telemetry-card">
         <div class="card-header">
           <div style="display:flex; align-items:center; gap:8px;">
-            <span class="card-title">QUANTITATIVE AERODYNAMIC FORCES (MOMENTUM EXCHANGE)</span>
-            ${this.groundPlaneEnabled ? '<span class="badge-ok" style="font-size:9.5px; padding:2px 6px;">🏡 Ground ABL</span>' : '<span class="badge-accent" style="font-size:9.5px; padding:2px 6px;">🚀 Freestream</span>'}
+            <span class="card-title">AERODYNAMIC FORCES (MOMENTUM EXCHANGE)</span>
+            ${this.groundPlaneEnabled ? '<span class="badge-neutral" style="font-size:9.5px; padding:2px 6px;">GROUND ABL</span>' : '<span class="badge-accent" style="font-size:9.5px; padding:2px 6px;">FREESTREAM</span>'}
           </div>
           ${blockageWarning}
         </div>

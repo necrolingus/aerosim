@@ -56,8 +56,8 @@ export class WindTunnelViewport {
 
     // 1. Scene setup
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x0b101b);
-    this.scene.fog = new THREE.FogExp2(0x0b101b, 0.045);
+    this.scene.background = new THREE.Color(0xf1f5f9);
+    this.scene.fog = new THREE.FogExp2(0xf1f5f9, 0.04);
 
     // 2. Camera setup
     const width = container.clientWidth || window.innerWidth;
@@ -162,17 +162,17 @@ export class WindTunnelViewport {
   }
 
   private setupLighting(): void {
-    const hemiLight = new THREE.HemisphereLight(0xdbeafe, 0x1e293b, 0.9);
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0xcfd8dc, 1.15);
     this.scene.add(hemiLight);
 
-    const keyLight = new THREE.DirectionalLight(0xffffff, 1.8);
+    const keyLight = new THREE.DirectionalLight(0xffffff, 1.7);
     keyLight.position.set(-3, 5, 4);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.width = 2048;
     keyLight.shadow.mapSize.height = 2048;
     this.scene.add(keyLight);
 
-    const rimLight = new THREE.DirectionalLight(0x38bdf8, 0.9);
+    const rimLight = new THREE.DirectionalLight(0x94a3b8, 0.65);
     rimLight.position.set(4, -2, -3);
     this.scene.add(rimLight);
   }
@@ -195,18 +195,18 @@ export class WindTunnelViewport {
     const boxGeom = new THREE.BoxGeometry(L, H, W);
     const edgesGeom = new THREE.EdgesGeometry(boxGeom);
     const edgeMat = new THREE.LineBasicMaterial({
-      color: 0x38bdf8,
+      color: 0x64748b,
       transparent: true,
-      opacity: 0.45,
+      opacity: 0.5,
     });
     const wireframeBox = new THREE.LineSegments(edgesGeom, edgeMat);
     this.tunnelGroup.add(wireframeBox);
 
     // Subtle translucent acrylic walls
     const glassMat = new THREE.MeshPhysicalMaterial({
-      color: 0x0ea5e9,
+      color: 0xcbd5e1,
       transparent: true,
-      opacity: 0.04,
+      opacity: 0.05,
       roughness: 0.1,
       side: THREE.BackSide,
       depthWrite: false,
@@ -214,16 +214,16 @@ export class WindTunnelViewport {
     const glassMesh = new THREE.Mesh(boxGeom, glassMat);
     this.tunnelGroup.add(glassMesh);
 
-    // 2. Inlet Plane (-X) with Cyan Honeycomb Grid & Flow Arrows
+    // 2. Inlet Plane (-X) with Honeycomb Grid & Flow Arrows
     const inletX = -L / 2;
-    const inletGrid = this.createRectGrid(W, H, 10, 8, 0x22d3ee, 0.35);
+    const inletGrid = this.createRectGrid(W, H, 10, 8, 0x0284c7, 0.35);
     inletGrid.rotation.y = Math.PI / 2;
     inletGrid.position.set(inletX, 0, 0);
     this.tunnelGroup.add(inletGrid);
 
-    // 3. Outlet Plane (+X) with Amber/Red Exit Frame (also shows live Frontal Area Silhouette projection)
+    // 3. Outlet Plane (+X) with Exit Frame
     const outletX = L / 2;
-    const outletGrid = this.createRectGrid(W, H, 6, 6, 0xf97316, 0.22);
+    const outletGrid = this.createRectGrid(W, H, 6, 6, 0xea580c, 0.25);
     outletGrid.rotation.y = Math.PI / 2;
     outletGrid.position.set(outletX, 0, 0);
     this.tunnelGroup.add(outletGrid);
@@ -243,7 +243,7 @@ export class WindTunnelViewport {
 
         const dir = new THREE.Vector3(1, 0, 0);
         const origin = new THREE.Vector3(inletX + 0.05, y, z);
-        const arrow = new THREE.ArrowHelper(dir, origin, arrowLen, 0x22d3ee, 0.12, 0.07);
+        const arrow = new THREE.ArrowHelper(dir, origin, arrowLen, 0x0284c7, 0.12, 0.07);
         this.windVectorsGroup.add(arrow);
       }
     }
@@ -254,9 +254,9 @@ export class WindTunnelViewport {
       // Solid no-slip ground plate for sheds, tiny homes, and cars
       const groundGeom = new THREE.PlaneGeometry(L, W);
       const groundMat = new THREE.MeshStandardMaterial({
-        color: 0x1e293b,
-        roughness: 0.85,
-        metalness: 0.1,
+        color: 0xe2e8f0,
+        roughness: 0.9,
+        metalness: 0.05,
       });
       const groundMesh = new THREE.Mesh(groundGeom, groundMat);
       groundMesh.rotation.x = -Math.PI / 2;
@@ -264,13 +264,13 @@ export class WindTunnelViewport {
       groundMesh.receiveShadow = true;
       this.groundPlaneGroup.add(groundMesh);
 
-      const groundGrid = this.createRectGrid(L, W, 24, 12, 0x38bdf8, 0.35);
+      const groundGrid = this.createRectGrid(L, W, 24, 12, 0x94a3b8, 0.45);
       groundGrid.rotation.x = -Math.PI / 2;
       groundGrid.position.y = floorY + 0.003;
       this.groundPlaneGroup.add(groundGrid);
     } else {
       // Freestream slip-wall subtle reference grid
-      const floorGrid = this.createRectGrid(L, W, 18, 9, 0x334155, 0.3);
+      const floorGrid = this.createRectGrid(L, W, 18, 9, 0xcbd5e1, 0.55);
       floorGrid.rotation.x = -Math.PI / 2;
       floorGrid.position.y = floorY + 0.001;
       this.groundPlaneGroup.add(floorGrid);
@@ -323,10 +323,10 @@ export class WindTunnelViewport {
     const geom = new THREE.BufferGeometry();
     geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     const mat = new THREE.PointsMaterial({
-      color: 0x38bdf8,
+      color: 0x0284c7,
       size: 0.035,
       transparent: true,
-      opacity: 0.55,
+      opacity: 0.65,
     });
 
     this.windParticles = new THREE.Points(geom, mat);
@@ -374,7 +374,7 @@ export class WindTunnelViewport {
     this.applyTransformToMesh(transform);
     this.scene.add(this.activeMesh);
 
-    this.boundingBoxHelper = new THREE.BoxHelper(this.activeMesh, 0x22d3ee);
+    this.boundingBoxHelper = new THREE.BoxHelper(this.activeMesh, 0x0284c7);
     this.scene.add(this.boundingBoxHelper);
 
     this.transformControls.attach(this.activeMesh);

@@ -365,7 +365,7 @@ export class PointProbeTool {
 
     this.tooltipEl.innerHTML = `
       <div class="probe-header">
-        <span class="probe-title">🎯 3D POINT PROBE</span>
+        <span class="probe-title">3D TELEMETRY PROBE</span>
         ${statusTag}
       </div>
       <div class="probe-grid">
