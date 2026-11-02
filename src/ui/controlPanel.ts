@@ -78,15 +78,15 @@ export class ControlPanelUI {
       stabBox.innerHTML = `
         <div class="stat-row" style="display:flex; justify-content:space-between; margin-bottom:4px;">
           <span style="color:var(--text-muted);">Center of Pressure (X<sub>cp</sub>):</span>
-          <strong style="color:var(--accent-cyan); font-family:var(--font-mono);">${report.xcpMeters.toFixed(2)} m</strong>
+          <strong style="color:var(--text-main); font-family:var(--font-mono); font-size:11px;">${report.xcpMeters.toFixed(2)} m</strong>
         </div>
         <div class="stat-row" style="display:flex; justify-content:space-between; margin-bottom:4px;">
           <span style="color:var(--text-muted);">Static Margin:</span>
-          <strong style="color:${report.isStable ? '#10b981' : '#ef4444'}; font-family:var(--font-mono);">
+          <strong style="color:${report.isStable ? 'var(--accent-green)' : 'var(--accent-red)'}; font-family:var(--font-mono); font-size:11px;">
             ${report.staticMarginCalibers.toFixed(2)} calibers
           </strong>
         </div>
-        <div style="font-size:10.5px; line-height:1.35; color:#94a3b8; margin-top:4px;">
+        <div style="font-size:10.5px; line-height:1.4; color:var(--text-muted); margin-top:6px;">
           ${report.explanation}
         </div>
       `;
@@ -103,10 +103,10 @@ export class ControlPanelUI {
     const tableBody = this.container.querySelector('#storm-ratings-tbody');
     if (tableBody && report) {
       tableBody.innerHTML = report.ratings.slice(1, 5).map((r) => `
-        <tr style="border-bottom: 1px solid rgba(148, 163, 184, 0.1);">
-          <td style="padding: 4px 2px; color: #f8fafc;">${r.ratingName.split('(')[0]}</td>
-          <td style="padding: 4px 2px; text-align: right; font-family: var(--font-mono); color: var(--accent-cyan);">${r.stormWindKmh.toFixed(0)} km/h</td>
-          <td style="padding: 4px 2px; text-align: right; font-family: var(--font-mono); color: ${r.upliftForceN > 0 ? '#f59e0b' : '#38bdf8'};">
+        <tr style="border-bottom: 1px solid var(--border-subtle);">
+          <td style="padding: 4px 2px; color: var(--text-main);">${r.ratingName.split('(')[0]}</td>
+          <td style="padding: 4px 2px; text-align: right; font-family: var(--font-mono); color: var(--text-muted);">${r.stormWindKmh.toFixed(0)} km/h</td>
+          <td style="padding: 4px 2px; text-align: right; font-family: var(--font-mono); color: ${r.upliftForceN > 0 ? 'var(--accent-amber)' : 'var(--accent-teal)'};">
             ${r.upliftForceN >= 0 ? '+' : ''}${r.upliftForceN.toFixed(0)} N <small>(${r.upliftForceKgf.toFixed(0)} kgf)</small>
           </td>
         </tr>
@@ -372,55 +372,55 @@ export class ControlPanelUI {
         </div>
 
         ${this.state.domainWorkflowMode === 'freestream' ? `
-          <div class="domain-card" style="background:rgba(30,41,59,0.5); padding:10px; border-radius:6px; border:1px solid rgba(148,163,184,0.15);">
+          <div class="domain-card" style="background:var(--bg-card); padding:10px; border-radius:6px; border:1px solid var(--border-subtle);">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-              <strong style="color:#38bdf8; font-size:11.5px;">Rocket Static Stability</strong>
+              <strong style="color:var(--text-main); font-size:11.5px; font-weight:700;">Rocket Static Stability</strong>
               <span id="rocket-stab-badge" class="${this.rocketStability?.isStable ? 'badge-ok' : 'badge-warn'}">
                 ${this.rocketStability ? (this.rocketStability.isStable ? '✓ Stable' : '⚠ Unstable') : 'Estimating...'}
               </span>
             </div>
             <div style="margin-top: 8px;">
-              <label for="rocket-stab-toggle" style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:11px;">
+              <label for="rocket-stab-toggle" style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:11px; color:var(--text-main);">
                 <input type="checkbox" id="rocket-stab-toggle" ${this.state.rocketStabilityEnabled ? 'checked' : ''} />
                 <span>Show 3D X<sub>cp</sub> & X<sub>cg</sub> Markers</span>
               </label>
             </div>
             <div class="slider-group" style="margin-top: 6px;">
-              <div style="display:flex; justify-content:space-between; font-size:11px; color:#94a3b8;">
+              <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-muted); margin-bottom:4px;">
                 <span>Center of Gravity (X<sub>cg</sub>):</span>
                 <span id="xcg-val" class="val-highlight">${this.state.rocketXcgOffset.toFixed(2)} m</span>
               </div>
               <input type="range" id="xcg-slider" min="-1.5" max="1.5" step="0.05" value="${this.state.rocketXcgOffset}" />
             </div>
-            <div id="stability-stats-container" style="background:rgba(15,23,42,0.6); padding:8px; border-radius:6px; border:1px solid rgba(148,163,184,0.15); margin-top:8px;">
+            <div id="stability-stats-container" style="background:var(--bg-card-subtle); padding:8px; border-radius:6px; border:1px solid var(--border-subtle); margin-top:8px;">
               ${this.rocketStability ? `
                 <div class="stat-row" style="display:flex; justify-content:space-between; margin-bottom:4px;">
                   <span style="color:var(--text-muted);">Center of Pressure (X<sub>cp</sub>):</span>
-                  <strong style="color:var(--accent-cyan); font-family:var(--font-mono);">${this.rocketStability.xcpMeters.toFixed(2)} m</strong>
+                  <strong style="color:var(--text-main); font-family:var(--font-mono); font-size:11px;">${this.rocketStability.xcpMeters.toFixed(2)} m</strong>
                 </div>
                 <div class="stat-row" style="display:flex; justify-content:space-between; margin-bottom:4px;">
                   <span style="color:var(--text-muted);">Static Margin:</span>
-                  <strong style="color:${this.rocketStability.isStable ? '#10b981' : '#ef4444'}; font-family:var(--font-mono);">
+                  <strong style="color:${this.rocketStability.isStable ? 'var(--accent-green)' : 'var(--accent-red)'}; font-family:var(--font-mono); font-size:11px;">
                     ${this.rocketStability.staticMarginCalibers.toFixed(2)} calibers
                   </strong>
                 </div>
-                <div style="font-size:10.5px; line-height:1.35; color:#94a3b8; margin-top:4px;">
+                <div style="font-size:10.5px; line-height:1.4; color:var(--text-muted); margin-top:6px;">
                   ${this.rocketStability.explanation}
                 </div>
               ` : '<div style="color:var(--text-muted); font-size:11px;">Awaiting aerodynamic convergence...</div>'}
             </div>
           </div>
         ` : `
-          <div class="domain-card" style="background:rgba(30,41,59,0.5); padding:10px; border-radius:6px; border:1px solid rgba(148,163,184,0.15);">
+          <div class="domain-card" style="background:var(--bg-card); padding:10px; border-radius:6px; border:1px solid var(--border-subtle);">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-              <strong style="color:#f59e0b; font-size:11.5px;">Building Roof Suction & Storm Loads</strong>
+              <strong style="color:var(--accent-amber); font-size:11.5px; font-weight:700;">Building Roof Suction & Storm Loads</strong>
             </div>
-            <p style="font-size:10.5px; color:#94a3b8; margin-top:4px;">
+            <p style="font-size:10.5px; color:var(--text-muted); margin-top:4px;">
               Scales measured wake suction (negative C<sub>p</sub>) to severe storm conditions:
             </p>
             <table style="width:100%; margin-top:8px; font-size:11px; border-collapse:collapse;">
               <thead>
-                <tr style="border-bottom:1px solid rgba(148,163,184,0.2); color:#94a3b8; text-align:left;">
+                <tr style="border-bottom:1px solid var(--border-subtle); color:var(--text-muted); text-align:left;">
                   <th style="padding:3px 2px;">Storm</th>
                   <th style="padding:3px 2px; text-align:right;">Wind</th>
                   <th style="padding:3px 2px; text-align:right;">Roof Uplift</th>
@@ -428,14 +428,14 @@ export class ControlPanelUI {
               </thead>
               <tbody id="storm-ratings-tbody">
                 ${this.buildingStormReport ? this.buildingStormReport.ratings.slice(1, 5).map(r => `
-                  <tr style="border-bottom: 1px solid rgba(148, 163, 184, 0.1);">
-                    <td style="padding: 3px 2px; color: #f8fafc;">${r.ratingName.split('(')[0]}</td>
-                    <td style="padding: 3px 2px; text-align: right; font-family: var(--font-mono); color: var(--accent-cyan);">${r.stormWindKmh.toFixed(0)} km/h</td>
-                    <td style="padding: 3px 2px; text-align: right; font-family: var(--font-mono); color: ${r.upliftForceN > 0 ? '#f59e0b' : '#38bdf8'};">
+                  <tr style="border-bottom: 1px solid var(--border-subtle);">
+                    <td style="padding: 3px 2px; color: var(--text-main);">${r.ratingName.split('(')[0]}</td>
+                    <td style="padding: 3px 2px; text-align: right; font-family: var(--font-mono); color: var(--text-muted);">${r.stormWindKmh.toFixed(0)} km/h</td>
+                    <td style="padding: 3px 2px; text-align: right; font-family: var(--font-mono); color: ${r.upliftForceN > 0 ? 'var(--accent-amber)' : 'var(--accent-teal)'};">
                       ${r.upliftForceN >= 0 ? '+' : ''}${r.upliftForceN.toFixed(0)} N <small>(${r.upliftForceKgf.toFixed(0)} kgf)</small>
                     </td>
                   </tr>
-                `).join('') : '<tr><td colspan="3" style="padding:4px; color:#94a3b8;">Simulating flow...</td></tr>'}
+                `).join('') : '<tr><td colspan="3" style="padding:4px; color:var(--text-muted);">Simulating flow...</td></tr>'}
               </tbody>
             </table>
           </div>
@@ -452,7 +452,7 @@ export class ControlPanelUI {
           </div>
           <div id="ab-comparison-content">
             ${this.abComparison ? `
-              <div style="background:rgba(18,21,26,0.85); padding:8px; border-radius:6px; border:1px solid var(--border-subtle); margin-top:8px;">
+              <div style="background:var(--bg-card-subtle); padding:8px 10px; border-radius:3px; border:1px solid var(--border-subtle); margin-top:8px;">
                 <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:3px;">
                   <span style="color:var(--text-muted);">Run A (Baseline):</span>
                   <strong style="color:var(--text-main); font-family:var(--font-mono);">${this.abComparison.baseline.specimenName} · Cd ${this.abComparison.baseline.cd.toFixed(3)}</strong>
