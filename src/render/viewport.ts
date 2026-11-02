@@ -56,8 +56,8 @@ export class WindTunnelViewport {
 
     // 1. Scene setup
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0xf1f5f9);
-    this.scene.fog = new THREE.FogExp2(0xf1f5f9, 0.04);
+    this.scene.background = new THREE.Color(0x0a0d14);
+    this.scene.fog = new THREE.FogExp2(0x0a0d14, 0.04);
 
     // 2. Camera setup
     const width = container.clientWidth || window.innerWidth;
@@ -254,7 +254,7 @@ export class WindTunnelViewport {
       // Solid no-slip ground plate for sheds, tiny homes, and cars
       const groundGeom = new THREE.PlaneGeometry(L, W);
       const groundMat = new THREE.MeshStandardMaterial({
-        color: 0xe2e8f0,
+        color: 0x1e293b,
         roughness: 0.9,
         metalness: 0.05,
       });
@@ -264,13 +264,13 @@ export class WindTunnelViewport {
       groundMesh.receiveShadow = true;
       this.groundPlaneGroup.add(groundMesh);
 
-      const groundGrid = this.createRectGrid(L, W, 24, 12, 0x94a3b8, 0.45);
+      const groundGrid = this.createRectGrid(L, W, 24, 12, 0x475569, 0.45);
       groundGrid.rotation.x = -Math.PI / 2;
       groundGrid.position.y = floorY + 0.003;
       this.groundPlaneGroup.add(groundGrid);
     } else {
       // Freestream slip-wall subtle reference grid
-      const floorGrid = this.createRectGrid(L, W, 18, 9, 0xcbd5e1, 0.55);
+      const floorGrid = this.createRectGrid(L, W, 18, 9, 0x334155, 0.5);
       floorGrid.rotation.x = -Math.PI / 2;
       floorGrid.position.y = floorY + 0.001;
       this.groundPlaneGroup.add(floorGrid);
