@@ -530,10 +530,11 @@ export class WindTunnelViewport {
     tunnel: TunnelDimensions,
     axis: SliceAxis,
     slicePos: number,
-    enabled: boolean
+    enabled: boolean,
+    voxel?: VoxelGridResult | null
   ): void {
     this.flowSliceRenderer.setVisible(enabled);
-    this.flowSliceRenderer.updatePose(tunnel, axis, slicePos);
+    this.flowSliceRenderer.updatePose(tunnel, axis, slicePos, voxel);
   }
 
   public updateFlowSlicePixels(width: number, height: number, rgba: Uint8Array): void {

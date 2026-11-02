@@ -38,15 +38,17 @@ export function calculateSafeGridResolution(
   // Align dimensions to multiples of 8 for optimal WebGPU compute workgroup dispatch (8x4x4 or 8x8x1)
   const align8 = (n: number, minVal: number) => Math.max(minVal, Math.floor(n / 8) * 8);
 
-  let nx = align8(Math.round(lx / cellPitch), 64);
   let ny = align8(Math.round(ly / cellPitch), 32);
-  let nz = align8(Math.round(lz / cellPitch), 32);
+  const h = ly / ny;
+  let nx = align8(Math.round(lx / h), 64);
+  let nz = align8(Math.round(lz / h), 32);
 
   // Ensure single buffer doesn't exceed binding limit
   while (nx * ny * nz * singlePingBufferBytesPerCell > Math.min(maxStorageBufferBindingSize, maxBufferSize) * 0.9) {
-    nx = Math.max(64, nx - 8);
-    ny = Math.max(32, Math.floor((nx * (ly / lx)) / 8) * 8);
-    nz = Math.max(32, Math.floor((nx * (lz / lx)) / 8) * 8);
+    ny = Math.max(32, ny - 8);
+    const newH = ly / ny;
+    nx = Math.max(64, Math.floor((lx / newH) / 8) * 8);
+    nz = Math.max(32, Math.floor((lz / newH) / 8) * 8);
   }
 
   const totalCells = nx * ny * nz;

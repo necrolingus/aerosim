@@ -543,10 +543,10 @@ export class LBMCpuReferenceSolver {
         const pIdx = (v * width + u) * 4;
 
         if (flags[idx] === CELL_SOLID) {
-          rgba[pIdx] = 30;
-          rgba[pIdx + 1] = 41;
-          rgba[pIdx + 2] = 59;
-          rgba[pIdx + 3] = 235;
+          rgba[pIdx] = 0;
+          rgba[pIdx + 1] = 0;
+          rgba[pIdx + 2] = 0;
+          rgba[pIdx + 3] = 0;
           continue;
         }
 

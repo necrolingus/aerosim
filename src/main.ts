@@ -203,7 +203,8 @@ async function bootstrapWindTunnelApp(): Promise<void> {
       state.tunnel,
       state.flowSliceAxis,
       state.flowSlicePos,
-      state.flowSliceEnabled
+      state.flowSliceEnabled,
+      latestVoxelResult
     );
 
     const voxelTel: VoxelTelemetry = {

@@ -92,7 +92,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
 
   // Solid obstacle interior
   if (flag == 1u) {
-    sliceRgbaOut[pixelIdx] = packRGBA8(0.12, 0.16, 0.24, 0.92);
+    sliceRgbaOut[pixelIdx] = packRGBA8(0.0, 0.0, 0.0, 0.0);
     return;
   }
 

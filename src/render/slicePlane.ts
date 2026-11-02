@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { TunnelDimensions } from '../core/types';
 import type { SliceAxis } from '../solver/lbmCpuReference';
+import type { VoxelGridResult } from '../geometry/voxelizer';
 
 /**
  * Renders the real-time 2D movable cross-section plane in the 3D Wind Tunnel viewport,
@@ -18,6 +19,7 @@ export class FlowSlicePlaneRenderer {
   private sliceFraction = 0.5;
   private visible = true;
   private tunnel: TunnelDimensions;
+  private voxel: VoxelGridResult | null = null;
 
   constructor(parentScene: THREE.Scene, tunnel: TunnelDimensions) {
     this.group = new THREE.Group();
@@ -34,7 +36,10 @@ export class FlowSlicePlaneRenderer {
     return this.sliceMesh;
   }
 
-  public updatePose(tunnel: TunnelDimensions, axis: SliceAxis, sliceFraction: number): void {
+  public updatePose(tunnel: TunnelDimensions, axis: SliceAxis, sliceFraction: number, voxel?: VoxelGridResult | null): void {
+    if (voxel !== undefined) {
+      this.voxel = voxel;
+    }
     const axisChanged = axis !== this.axis;
     const tunnelChanged =
       tunnel.length !== this.tunnel.length ||
@@ -82,15 +87,19 @@ export class FlowSlicePlaneRenderer {
     }
 
     const { length: L, height: H, width: W } = this.tunnel;
-    let planeW = L;
-    let planeH = H;
+    const widthX = this.voxel ? this.voxel.nx * this.voxel.dx : L;
+    const heightY = this.voxel ? this.voxel.ny * this.voxel.dy : H;
+    const depthZ = this.voxel ? this.voxel.nz * this.voxel.dz : W;
+
+    let planeW = widthX;
+    let planeH = heightY;
 
     if (this.axis === 'y') {
-      planeW = L;
-      planeH = W;
+      planeW = widthX;
+      planeH = depthZ;
     } else if (this.axis === 'x') {
-      planeW = W;
-      planeH = H;
+      planeW = depthZ;
+      planeH = heightY;
     }
 
     const geom = new THREE.PlaneGeometry(planeW, planeH);
@@ -120,19 +129,25 @@ export class FlowSlicePlaneRenderer {
   private applyPositionOnly(): void {
     if (!this.sliceMesh) return;
     const { length: L, height: H, width: W } = this.tunnel;
+    const widthX = this.voxel ? this.voxel.nx * this.voxel.dx : L;
+    const heightY = this.voxel ? this.voxel.ny * this.voxel.dy : H;
+    const depthZ = this.voxel ? this.voxel.nz * this.voxel.dz : W;
+    const originX = this.voxel ? this.voxel.originX : -L * 0.5;
+    const originY = this.voxel ? this.voxel.originY : -H * 0.5;
+    const originZ = this.voxel ? this.voxel.originZ : -W * 0.5;
 
     this.sliceMesh.rotation.set(0, 0, 0);
     if (this.axis === 'z') {
-      const z = -W * 0.5 + this.sliceFraction * W;
-      this.sliceMesh.position.set(0, 0, z);
+      const z = originZ + this.sliceFraction * depthZ;
+      this.sliceMesh.position.set(originX + widthX * 0.5, originY + heightY * 0.5, z);
     } else if (this.axis === 'y') {
-      const y = -H * 0.5 + this.sliceFraction * H;
+      const y = originY + this.sliceFraction * heightY;
       this.sliceMesh.rotation.x = Math.PI / 2;
-      this.sliceMesh.position.set(0, y, 0);
+      this.sliceMesh.position.set(originX + widthX * 0.5, y, originZ + depthZ * 0.5);
     } else {
-      const x = -L * 0.5 + this.sliceFraction * L;
+      const x = originX + this.sliceFraction * widthX;
       this.sliceMesh.rotation.y = Math.PI / 2;
-      this.sliceMesh.position.set(x, 0, 0);
+      this.sliceMesh.position.set(x, originY + heightY * 0.5, originZ + depthZ * 0.5);
     }
   }
 }
