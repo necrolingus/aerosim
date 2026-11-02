@@ -154,12 +154,53 @@ export function runSinglePhysicsBenchmark(
   };
 }
 
+export interface BenchmarkProgressUpdate {
+  currentModel: string;
+  currentIndex: number;
+  totalModels: number;
+  percent: number;
+}
+
 /**
- * Runs the complete 4-model Gate 4 Physics Validation Suite:
- * 1. Smooth Sphere (Cd ≈ 0.47)
- * 2. Circular Cylinder (Cd ≈ 1.17)
- * 3. Cube / Shed bluff body (Cd ≈ 1.05)
- * 4. Streamlined Ogive Rocket Nose Cone (Cd ≈ 0.15 - 0.25)
+ * Runs the complete 4-model Gate 4 Physics Validation Suite asynchronously,
+ * yielding control to the browser event loop between models so the UI remains
+ * responsive, displays informative notices, and animates live progress bars.
+ */
+export async function runFullPhysicsValidationSuiteAsync(
+  onProgress?: (progress: BenchmarkProgressUpdate) => void
+): Promise<BenchmarkTestResult[]> {
+  const models: PresetModelId[] = ['sphere', 'cylinder', 'cube', 'rocket_nose'];
+  const results: BenchmarkTestResult[] = [];
+
+  for (let i = 0; i < models.length; i++) {
+    const id = models[i];
+    const benchmark = EMPIRICAL_BENCHMARK_CASES[id];
+    onProgress?.({
+      currentModel: benchmark.name,
+      currentIndex: i + 1,
+      totalModels: models.length,
+      percent: Math.round((i / models.length) * 100),
+    });
+
+    // Yield to event loop to allow DOM repaints and keep the browser completely responsive
+    await new Promise((resolve) => setTimeout(resolve, 80));
+
+    const result = runSinglePhysicsBenchmark(id);
+    results.push(result);
+  }
+
+  onProgress?.({
+    currentModel: 'Validation Complete',
+    currentIndex: models.length,
+    totalModels: models.length,
+    percent: 100,
+  });
+
+  return results;
+}
+
+/**
+ * Runs the complete 4-model Gate 4 Physics Validation Suite synchronously (for Node / Vitest CI test runners).
  */
 export function runFullPhysicsValidationSuite(): BenchmarkTestResult[] {
   const models: PresetModelId[] = ['sphere', 'cylinder', 'cube', 'rocket_nose'];

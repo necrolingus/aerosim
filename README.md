@@ -632,6 +632,63 @@ Because the solver has 2nd-order spatial accuracy (`O(h^2)`), refining the mesh 
 
 ---
 
+### Detailed Telemetry CSV Data Dictionary & Engineering Guide
+
+#### What Is the Exported CSV?
+The exported CSV is **not a single point in space** (which is what the 3D Point Probe measures). Instead, it is a **comprehensive unsteady time-series of the entire 3D specimen**:
+1. **Global Surface Integration:** Every row represents the summed aerodynamic force acting over the **entire 3D surface area of your model**, calculated via Momentum Exchange integration across thousands of boundary lattice links.
+2. **Recorded Over Time:** Rather than a static snapshot, it records how the forces and moments fluctuate frame-by-frame as vortices detach and roll downstream into the wake (the Von Kármán vortex street).
+
+#### CSV Column Breakdown
+
+| Column Header | Unit | Physical Meaning | How It Is Calculated |
+| :--- | :---: | :--- | :--- |
+| `step` | count | Simulation lattice time step index | Discrete time step counter $t_0, t_1, t_2...$ |
+| `time_sec` | seconds | Physical elapsed simulation time | $\text{step} \times \Delta t$ |
+| `cd` | dimensionless | Instantaneous Drag Coefficient | $F_d(t) / (q_\infty \cdot A_{\text{ref}})$ |
+| `cl` | dimensionless | Instantaneous Lift / Side Coefficient | $F_l(t) / (q_\infty \cdot A_{\text{ref}})$ |
+| `cm` | dimensionless | Instantaneous Pitching Moment Coefficient | $M_z(t) / (q_\infty \cdot A_{\text{ref}} \cdot L_{\text{ref}})$ |
+| `drag_force_n` | Newtons (N) | Instantaneous total drag force along +X | $C_d(t) \cdot q_\infty \cdot A_{\text{ref}}$ |
+| `drag_force_lbf` | lbf | Drag force converted to imperial pounds | $\text{drag\_force\_n} \times 0.224809$ |
+| `drag_force_kgf` | kgf | Drag force converted to kilogram-force | $\text{drag\_force\_n} \times 0.101972$ |
+| `lift_force_n` | Newtons (N) | Instantaneous vertical force (lift or roof uplift) | $C_l(t) \cdot q_\infty \cdot A_{\text{ref}}$ |
+| `lift_force_lbf` | lbf | Lift force converted to imperial pounds | $\text{lift\_force\_n} \times 0.224809$ |
+| `xcp_meters` | meters (m) | Instantaneous Center of Pressure along streamwise X | $\sum (x_i \cdot \Delta F_{y,i}) / \sum \Delta F_{y,i}$ |
+
+#### Real-World Engineering Use Cases for This CSV
+
+1. **Vortex Shedding Frequency & Strouhal Number ($St$):**
+   - By running a Fast Fourier Transform (FFT) on the oscillating `cl` or `lift_force_n` column, engineers find the dominant vortex shedding frequency ($f$).
+   - This yields the dimensionless Strouhal number $St = \frac{f \cdot D}{U_\infty}$, critical for preventing resonance on chimneys, bridges, antennas, and rocket fairings.
+2. **Structural Fatigue & Peak Gust Loading:**
+   - Real-world structures fail from cyclic fatigue and peak shock gusts, not mean forces. Civil engineers import this CSV to calculate peak-to-mean force ratios and stress spectra for building roofs or solar arrays.
+3. **Flight Dynamics & Static Pitch Margin:**
+   - Rocket and UAV engineers plot `xcp_meters` vs. time to verify that aerodynamic center of pressure remains comfortably behind the center of gravity ($X_{\text{cg}}$) under unsteady turbulent buffeting.
+
+#### Quick Python Analysis Example
+
+```python
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Load AeroSim telemetry export (skipping the metadata comment header lines)
+df = pd.read_csv("aerosim_specimen_telemetry.csv", comment="#")
+
+# Plot unsteady lift & drag oscillations
+plt.figure(figsize=(10, 4))
+plt.plot(df["time_sec"], df["drag_force_n"], label="Drag Force (N)", color="orange")
+plt.plot(df["time_sec"], df["lift_force_n"], label="Lift Force (N)", color="cyan")
+plt.title("AeroSim Unsteady Force History")
+plt.xlabel("Time (s)")
+plt.ylabel("Force (N)")
+plt.grid(True, alpha=0.3)
+plt.legend()
+plt.tight_layout()
+plt.show()
+```
+
+---
+
 ## 10. Automated Verification & Developer Guide
 
 ### 10.1 Running Automated Unit Tests

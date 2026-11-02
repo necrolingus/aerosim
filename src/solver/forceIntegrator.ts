@@ -37,8 +37,16 @@ export interface AerodynamicForceReadout {
   stabilityPercent: number;
   /** True when rolling window is full and relative standard error is < 1.5% */
   isConverged: boolean;
-  /** Rolling history of (step, Cd, Cl) for the live convergence plot */
-  history: ReadonlyArray<{ step: number; cd: number; cl: number }>;
+  /** Rolling history of (step, Cd, Cl, Cm, Xcp, forces) for live plotting & export */
+  history: ReadonlyArray<{
+    step: number;
+    cd: number;
+    cl: number;
+    cm?: number;
+    xcp?: number;
+    dragForceN?: number;
+    liftForceN?: number;
+  }>;
 }
 
 /**
@@ -402,7 +410,15 @@ export class ForceConvergenceTracker {
       centerOfPressureX: meanXcp,
       stabilityPercent,
       isConverged,
-      history: this.samples.map((s) => ({ step: s.step, cd: s.cd, cl: s.cl })),
+      history: this.samples.map((s) => ({
+        step: s.step,
+        cd: s.cd,
+        cl: s.cl,
+        cm: s.cm,
+        xcp: s.xcp,
+        dragForceN: s.cd * qArea,
+        liftForceN: s.cl * qArea,
+      })),
     };
   }
 }

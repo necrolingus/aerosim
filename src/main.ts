@@ -20,7 +20,7 @@ import { PresetSelectorUI } from './ui/presetSelector';
 import { ControlPanelUI } from './ui/controlPanel';
 import { TelemetryHudUI } from './ui/telemetryHud';
 import { ConvergenceChartUI } from './ui/convergenceChart';
-import { runFullPhysicsValidationSuite } from './validation/testRunner';
+import { runFullPhysicsValidationSuiteAsync } from './validation/testRunner';
 import {
   computeABComparison,
   computeBuildingStormReport,
@@ -79,9 +79,16 @@ async function bootstrapWindTunnelApp(): Promise<void> {
   const hud = new TelemetryHudUI(hudMount);
   const viewport = new WindTunnelViewport(viewportMount, state);
   const convergenceChart = new ConvergenceChartUI(convChartMount, {
-    onRunBenchmarks: () => {
-      const results = runFullPhysicsValidationSuite();
-      convergenceChart.showBenchmarkResults(results);
+    onRunBenchmarks: async () => {
+      convergenceChart.showBenchmarkProgress('Preparing Wind Tunnels...', 0, 4, 0);
+      try {
+        const results = await runFullPhysicsValidationSuiteAsync((prog) => {
+          convergenceChart.showBenchmarkProgress(prog.currentModel, prog.currentIndex, prog.totalModels, prog.percent);
+        });
+        convergenceChart.showBenchmarkResults(results);
+      } catch (err) {
+        console.error('Physics validation error:', err);
+      }
     },
   });
 
@@ -292,16 +299,18 @@ async function bootstrapWindTunnelApp(): Promise<void> {
         fluid: state.fluid,
         tunnel: state.tunnel,
       });
+      const qDyn = 0.5 * state.fluid.density * state.windSpeed * state.windSpeed;
+      const qArea = qDyn * currentMeshStats.frontalArea;
       const csvContent = exportTelemetryToCSV(
         latestForceReadout.history.map((h) => ({
           step: h.step,
           timeSec: h.step * 0.001,
           cd: h.cd,
           cl: h.cl,
-          cm: latestForceReadout!.pitchingMomentCm,
-          dragForceN: latestForceReadout!.dragForceNewtons,
-          liftForceN: latestForceReadout!.liftForceNewtons,
-          xcpMeters: latestForceReadout!.centerOfPressureX,
+          cm: h.cm ?? latestForceReadout!.pitchingMomentCm,
+          dragForceN: h.dragForceN ?? (h.cd * qArea),
+          liftForceN: h.liftForceN ?? (h.cl * qArea),
+          xcpMeters: h.xcp ?? latestForceReadout!.centerOfPressureX,
         })),
         {
           specimenName: currentModelName,
@@ -353,6 +362,8 @@ async function bootstrapWindTunnelApp(): Promise<void> {
             : 0,
         isConverged: latestForceReadout.isConverged,
       };
+      const qDyn = 0.5 * state.fluid.density * state.windSpeed * state.windSpeed;
+      const qArea = qDyn * currentMeshStats.frontalArea;
       const jsonContent = exportRunReportToJSON(
         metadata,
         latestForceReadout.history.map((h) => ({
@@ -360,10 +371,10 @@ async function bootstrapWindTunnelApp(): Promise<void> {
           timeSec: h.step * 0.001,
           cd: h.cd,
           cl: h.cl,
-          cm: latestForceReadout!.pitchingMomentCm,
-          dragForceN: latestForceReadout!.dragForceNewtons,
-          liftForceN: latestForceReadout!.liftForceNewtons,
-          xcpMeters: latestForceReadout!.centerOfPressureX,
+          cm: h.cm ?? latestForceReadout!.pitchingMomentCm,
+          dragForceN: h.dragForceN ?? (h.cd * qArea),
+          liftForceN: h.liftForceN ?? (h.cl * qArea),
+          xcpMeters: h.xcp ?? latestForceReadout!.centerOfPressureX,
         }))
       );
       const cleanName = currentModelName.toLowerCase().replace(/[^a-z0-9]/g, '_');

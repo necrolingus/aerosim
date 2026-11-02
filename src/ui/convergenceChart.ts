@@ -42,17 +42,48 @@ export class ConvergenceChartUI {
     btn?.addEventListener('click', () => {
       if (this.isRunningBenchmarks) return;
       this.isRunningBenchmarks = true;
-      btn.textContent = '⏳ Running 4-Model Wind Tunnel Suite...';
+      btn.textContent = '⏳ Running Suite...';
+      btn.disabled = true;
+      btn.style.opacity = '0.6';
       setTimeout(() => {
         this.callbacks.onRunBenchmarks();
-      }, 30);
+      }, 50);
     });
+  }
+
+  public showBenchmarkProgress(currentModel: string, currentIndex: number, totalModels: number, percent: number): void {
+    const drawer = this.container.querySelector<HTMLElement>('#benchmark-results-drawer');
+    if (!drawer) return;
+    drawer.classList.remove('hidden');
+
+    drawer.innerHTML = `
+      <div class="benchmark-progress-box">
+        <div class="bench-header">
+          <strong style="color:#38bdf8; display:flex; align-items:center; gap:6px;">
+            <span>🔬</span> Running Deep Physics Validation Suite (${currentIndex}/${totalModels})
+          </strong>
+        </div>
+        <div class="benchmark-progress-notice">
+          Simulating 4 distinct wind tunnels on CPU. High CPU usage is <strong>completely normal and expected</strong> — unadulterated Navier-Stokes physics is running in the background. Please keep this tab active.
+        </div>
+        <div style="font-size:11px; font-weight:600; color:#f8fafc; margin-top:2px;">
+          Active: <span style="color:#facc15;">${currentModel}</span>
+        </div>
+        <div class="benchmark-progress-bar-bg">
+          <div class="benchmark-progress-bar-fill" style="width: ${percent}%;"></div>
+        </div>
+      </div>
+    `;
   }
 
   public showBenchmarkResults(results: BenchmarkTestResult[]): void {
     this.isRunningBenchmarks = false;
     const btn = this.container.querySelector<HTMLButtonElement>('#btn-run-benchmarks');
-    if (btn) btn.textContent = '✓ Re-Run Physics Validation Suite';
+    if (btn) {
+      btn.textContent = '✓ Re-Run Physics Validation Suite';
+      btn.disabled = false;
+      btn.style.opacity = '1.0';
+    }
 
     const drawer = this.container.querySelector<HTMLElement>('#benchmark-results-drawer');
     if (!drawer) return;
