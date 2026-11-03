@@ -37,25 +37,25 @@ export class ControlPanelUI {
     const box = this.container.querySelector('#ab-comparison-content');
     const clearBtn = this.container.querySelector<HTMLButtonElement>('#btn-clear-baseline');
     if (clearBtn) {
-      clearBtn.style.display = delta ? 'inline-block' : 'none';
+      clearBtn.classList.toggle('hidden', !delta);
     }
     if (box) {
       if (delta) {
         box.innerHTML = `
-          <div style="background:var(--bg-input); padding:8px 10px; border-radius:3px; border:1px solid var(--border-subtle); margin-top:8px;">
-            <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:4px;">
-              <span style="color:var(--text-muted);">Run A (Baseline):</span>
-              <strong style="color:var(--text-main); font-family:var(--font-mono);">${delta.baseline.specimenName} · Cd ${delta.baseline.cd.toFixed(3)}</strong>
+          <div class="card-inner-box">
+            <div class="stat-row">
+              <span class="stat-label">Run A (Baseline):</span>
+              <strong class="stat-value">${delta.baseline.specimenName} · Cd ${delta.baseline.cd.toFixed(3)}</strong>
             </div>
-            <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:6px;">
-              <span style="color:var(--text-muted);">Run B (Live):</span>
-              <strong style="color:var(--accent-orange); font-family:var(--font-mono);">${delta.live.specimenName} · Cd ${delta.live.cd.toFixed(3)}</strong>
+            <div class="stat-row mb-sm">
+              <span class="stat-label">Run B (Live):</span>
+              <strong class="stat-value text-orange">${delta.live.specimenName} · Cd ${delta.live.cd.toFixed(3)}</strong>
             </div>
-            <div style="display:flex; gap:6px; flex-wrap:wrap;">
-              <span class="${delta.isDragReduced ? 'badge-ok' : 'badge-warn'}" style="font-size:10px;">
+            <div class="flex-align-center gap-sm flex-wrap">
+              <span class="${delta.isDragReduced ? 'badge-ok' : 'badge-warn'}">
                 ΔCd ${delta.deltaCd >= 0 ? '+' : ''}${delta.deltaCd.toFixed(3)} (${delta.percentDeltaCd >= 0 ? '+' : ''}${delta.percentDeltaCd.toFixed(1)}%)
               </span>
-              <span class="badge-neutral" style="font-size:10px;">
+              <span class="badge-neutral">
                 ΔLift ${delta.deltaLiftForceN >= 0 ? '+' : ''}${delta.deltaLiftForceN.toFixed(1)} N
               </span>
             </div>
@@ -63,7 +63,7 @@ export class ControlPanelUI {
         `;
       } else {
         box.innerHTML = `
-          <p style="font-size:10.5px; color:var(--text-muted); margin-top:6px; line-height:1.45;">
+          <p class="stat-description">
             Click <strong>Capture Run A</strong> to freeze reference forces, then modify shape, scale, or orientation to measure live aerodynamic deltas.
           </p>
         `;
@@ -76,17 +76,17 @@ export class ControlPanelUI {
     const stabBox = this.container.querySelector('#stability-stats-container');
     if (stabBox && report) {
       stabBox.innerHTML = `
-        <div class="stat-row" style="display:flex; justify-content:space-between; margin-bottom:4px;">
-          <span style="color:var(--text-muted);">Center of Pressure (X<sub>cp</sub>):</span>
-          <strong style="color:var(--text-main); font-family:var(--font-mono); font-size:11px;">${report.xcpMeters.toFixed(2)} m</strong>
+        <div class="stat-row">
+          <span class="stat-label">Center of Pressure (X<sub>cp</sub>):</span>
+          <strong class="stat-value">${report.xcpMeters.toFixed(2)} m</strong>
         </div>
-        <div class="stat-row" style="display:flex; justify-content:space-between; margin-bottom:4px;">
-          <span style="color:var(--text-muted);">Static Margin:</span>
-          <strong style="color:${report.isStable ? 'var(--accent-green)' : 'var(--accent-red)'}; font-family:var(--font-mono); font-size:11px;">
+        <div class="stat-row">
+          <span class="stat-label">Static Margin:</span>
+          <strong class="stat-value ${report.isStable ? 'text-green' : 'text-red'}">
             ${report.staticMarginCalibers.toFixed(2)} calibers
           </strong>
         </div>
-        <div style="font-size:10.5px; line-height:1.4; color:var(--text-muted); margin-top:6px;">
+        <div class="stat-description">
           ${report.explanation}
         </div>
       `;
@@ -103,10 +103,10 @@ export class ControlPanelUI {
     const tableBody = this.container.querySelector('#storm-ratings-tbody');
     if (tableBody && report) {
       tableBody.innerHTML = report.ratings.slice(1, 5).map((r) => `
-        <tr style="border-bottom: 1px solid var(--border-subtle);">
-          <td style="padding: 4px 2px; color: var(--text-main);">${r.ratingName.split('(')[0]}</td>
-          <td style="padding: 4px 2px; text-align: right; font-family: var(--font-mono); color: var(--text-muted);">${r.stormWindKmh.toFixed(0)} km/h</td>
-          <td style="padding: 4px 2px; text-align: right; font-family: var(--font-mono); color: ${r.upliftForceN > 0 ? 'var(--accent-amber)' : 'var(--accent-teal)'};">
+        <tr>
+          <td>${r.ratingName.split('(')[0]}</td>
+          <td class="col-right text-muted">${r.stormWindKmh.toFixed(0)} km/h</td>
+          <td class="col-right ${r.upliftForceN > 0 ? 'text-amber' : 'text-teal'}">
             ${r.upliftForceN >= 0 ? '+' : ''}${r.upliftForceN.toFixed(0)} N <small>(${r.upliftForceKgf.toFixed(0)} kgf)</small>
           </td>
         </tr>
@@ -168,7 +168,7 @@ export class ControlPanelUI {
           </div>
         </div>
 
-        <div class="control-row" style="margin-top: 8px;">
+        <div class="control-row mt-md">
           <label for="scale-uniform">Uniform Scale Multiplier</label>
           <div class="slider-group">
             <input type="range" id="scale-slider" min="0.1" max="3.0" step="0.05" value="${this.state.transform.scale.x}" />
@@ -230,7 +230,7 @@ export class ControlPanelUI {
           </div>
         </div>
 
-        <div class="control-row" style="margin-top: 10px;">
+        <div class="control-row mt-lg">
           <label>Target Solver Resolution Mode</label>
           <div class="mode-switch">
             <button type="button" class="mode-btn ${this.state.solverMode === 'interactive' ? 'active' : ''}" data-mode="interactive">
@@ -249,19 +249,19 @@ export class ControlPanelUI {
           <span class="badge-accent">PHASE 3</span>
         </div>
 
-        <div class="input-grid-3" style="margin-bottom: 8px;">
+        <div class="input-grid-3 mb-md">
           <button type="button" class="gizmo-btn ${this.state.flowSliceField === 'vorticity' ? 'active' : ''}" data-flowfield="vorticity" title="Curl |∇×u| (Vortex Cores)">Vorticity</button>
           <button type="button" class="gizmo-btn ${this.state.flowSliceField === 'velocity' ? 'active' : ''}" data-flowfield="velocity" title="Velocity Magnitude |u|/U∞">Velocity</button>
           <button type="button" class="gizmo-btn ${this.state.flowSliceField === 'cp' ? 'active' : ''}" data-flowfield="cp" title="Pressure Coefficient Cp">Pressure C<sub>p</sub></button>
         </div>
 
-        <div class="input-grid-3" style="margin-bottom: 8px;">
+        <div class="input-grid-3 mb-md">
           <button type="button" class="gizmo-btn ${this.state.flowSliceAxis === 'z' ? 'active' : ''}" data-flowaxis="z">XY (Z-Slice)</button>
           <button type="button" class="gizmo-btn ${this.state.flowSliceAxis === 'y' ? 'active' : ''}" data-flowaxis="y">XZ (Y-Slice)</button>
           <button type="button" class="gizmo-btn ${this.state.flowSliceAxis === 'x' ? 'active' : ''}" data-flowaxis="x">YZ (X-Slice)</button>
         </div>
 
-        <div class="control-row" style="margin-bottom: 8px;">
+        <div class="control-row mb-md">
           <div class="label-with-val">
             <label for="flow-slice-pos">Cross-Section Plane Offset</label>
             <span id="flow-slice-readout" class="val-highlight">${Math.round(this.state.flowSlicePos * 100)}% (Midplane)</span>
@@ -280,12 +280,12 @@ export class ControlPanelUI {
           <span class="section-title">6. SUB-GRID VOXEL & Q-DISTANCE INSPECTOR</span>
           <span class="badge-accent">PHASE 2</span>
         </div>
-        <div class="input-grid-3" style="margin-bottom: 10px;">
+        <div class="input-grid-3 mb-lg">
           <button type="button" class="gizmo-btn ${this.state.voxelVizMode === 'slice_2d' ? 'active' : ''}" data-voxviz="slice_2d">2D q-Slice</button>
           <button type="button" class="gizmo-btn ${this.state.voxelVizMode === 'shell_3d' ? 'active' : ''}" data-voxviz="shell_3d">3D q-Shell</button>
           <button type="button" class="gizmo-btn ${this.state.voxelVizMode === 'off' ? 'active' : ''}" data-voxviz="off">Hidden</button>
         </div>
-        <div class="control-row" style="margin-bottom: 0;">
+        <div class="control-row mb-0">
           <div class="label-with-val">
             <label for="voxel-slice-z">Spanwise Z-Slice Position</label>
             <span id="voxel-slice-readout" class="val-highlight">${Math.round(this.state.voxelSliceZ * 100)}% (Midplane)</span>
@@ -317,10 +317,10 @@ export class ControlPanelUI {
           <div class="btn-row-2">
             <button type="button" id="btn-toggle-vortex" class="btn-secondary ${this.state.vortexTubesEnabled ? 'btn-active-highlight' : ''}">${this.state.vortexTubesEnabled ? 'Hide Vortex Cores' : 'Show Vortex Cores'}</button>
           </div>
-          <div class="slider-group" style="margin-top: 6px;">
-            <label for="vortex-threshold" style="font-size: 11px; color: var(--text-muted);">Threshold Q / Qmax</label>
+          <div class="slider-group mt-sm">
+            <label for="vortex-threshold" class="slider-label">Threshold Q / Qmax</label>
             <input type="range" id="vortex-threshold" min="0.05" max="0.80" step="0.05" value="${this.state.vortexThreshold}" />
-            <span id="vortex-threshold-val" class="val-highlight" style="font-size: 11px;">${Math.round(this.state.vortexThreshold * 100)}%</span>
+            <span id="vortex-threshold-val" class="val-highlight">${Math.round(this.state.vortexThreshold * 100)}%</span>
           </div>
         </div>
 
@@ -332,17 +332,17 @@ export class ControlPanelUI {
           <div class="btn-row-2">
             <button type="button" id="btn-toggle-streamlines" class="btn-secondary ${this.state.streamlinesEnabled ? 'btn-active-highlight' : ''}">${this.state.streamlinesEnabled ? 'Stop Smoke Rake' : 'Inject Smoke Streamlines'}</button>
           </div>
-          <div class="slider-group" style="margin-top: 6px;">
-            <label for="rake-y-slider" style="font-size: 11px; color: var(--text-muted);">Rake Height (Y)</label>
+          <div class="slider-group mt-sm">
+            <label for="rake-y-slider" class="slider-label">Rake Height (Y)</label>
             <input type="range" id="rake-y-slider" min="-0.8" max="0.8" step="0.05" value="${this.state.streamlineRakeY}" />
           </div>
-          <div class="slider-group" style="margin-top: 4px;">
-            <label for="rake-z-slider" style="font-size: 11px; color: var(--text-muted);">Rake Lateral (Z)</label>
+          <div class="slider-group mt-xs">
+            <label for="rake-z-slider" class="slider-label">Rake Lateral (Z)</label>
             <input type="range" id="rake-z-slider" min="-0.8" max="0.8" step="0.05" value="${this.state.streamlineRakeZ}" />
           </div>
         </div>
 
-        <div class="control-row" style="margin-bottom: 0;">
+        <div class="control-row mb-0">
           <div class="label-with-val">
             <label>Interactive 3D Point Probe Tool</label>
             <span class="val-highlight">${this.state.probeEnabled ? 'ACTIVE' : 'OFF'}</span>
@@ -372,106 +372,106 @@ export class ControlPanelUI {
         </div>
 
         ${this.state.domainWorkflowMode === 'freestream' ? `
-          <div class="domain-card" style="background:var(--bg-card); padding:10px; border-radius:6px; border:1px solid var(--border-subtle);">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-              <strong style="color:var(--text-main); font-size:11.5px; font-weight:700;">Rocket Static Stability</strong>
+          <div class="domain-card">
+            <div class="card-header-row">
+              <strong class="domain-card-title">Rocket Static Stability</strong>
               <span id="rocket-stab-badge" class="${this.rocketStability?.isStable ? 'badge-ok' : 'badge-warn'}">
                 ${this.rocketStability ? (this.rocketStability.isStable ? '✓ Stable' : '⚠ Unstable') : 'Estimating...'}
               </span>
             </div>
-            <div style="margin-top: 8px;">
-              <label for="rocket-stab-toggle" style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:11px; color:var(--text-main);">
+            <div class="mt-md">
+              <label for="rocket-stab-toggle" class="checkbox-label">
                 <input type="checkbox" id="rocket-stab-toggle" ${this.state.rocketStabilityEnabled ? 'checked' : ''} />
                 <span>Show 3D X<sub>cp</sub> & X<sub>cg</sub> Markers</span>
               </label>
             </div>
-            <div class="slider-group" style="margin-top: 6px;">
-              <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-muted); margin-bottom:4px;">
+            <div class="slider-group mt-sm">
+              <div class="stat-row">
                 <span>Center of Gravity (X<sub>cg</sub>):</span>
                 <span id="xcg-val" class="val-highlight">${this.state.rocketXcgOffset.toFixed(2)} m</span>
               </div>
               <input type="range" id="xcg-slider" min="-1.5" max="1.5" step="0.05" value="${this.state.rocketXcgOffset}" />
             </div>
-            <div id="stability-stats-container" style="background:var(--bg-card-subtle); padding:8px; border-radius:6px; border:1px solid var(--border-subtle); margin-top:8px;">
+            <div id="stability-stats-container" class="card-inner-box">
               ${this.rocketStability ? `
-                <div class="stat-row" style="display:flex; justify-content:space-between; margin-bottom:4px;">
-                  <span style="color:var(--text-muted);">Center of Pressure (X<sub>cp</sub>):</span>
-                  <strong style="color:var(--text-main); font-family:var(--font-mono); font-size:11px;">${this.rocketStability.xcpMeters.toFixed(2)} m</strong>
+                <div class="stat-row">
+                  <span class="stat-label">Center of Pressure (X<sub>cp</sub>):</span>
+                  <strong class="stat-value">${this.rocketStability.xcpMeters.toFixed(2)} m</strong>
                 </div>
-                <div class="stat-row" style="display:flex; justify-content:space-between; margin-bottom:4px;">
-                  <span style="color:var(--text-muted);">Static Margin:</span>
-                  <strong style="color:${this.rocketStability.isStable ? 'var(--accent-green)' : 'var(--accent-red)'}; font-family:var(--font-mono); font-size:11px;">
+                <div class="stat-row">
+                  <span class="stat-label">Static Margin:</span>
+                  <strong class="stat-value ${this.rocketStability.isStable ? 'text-green' : 'text-red'}">
                     ${this.rocketStability.staticMarginCalibers.toFixed(2)} calibers
                   </strong>
                 </div>
-                <div style="font-size:10.5px; line-height:1.4; color:var(--text-muted); margin-top:6px;">
+                <div class="stat-description">
                   ${this.rocketStability.explanation}
                 </div>
-              ` : '<div style="color:var(--text-muted); font-size:11px;">Awaiting aerodynamic convergence...</div>'}
+              ` : '<div class="stat-label">Awaiting aerodynamic convergence...</div>'}
             </div>
           </div>
         ` : `
-          <div class="domain-card" style="background:var(--bg-card); padding:10px; border-radius:6px; border:1px solid var(--border-subtle);">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-              <strong style="color:var(--accent-amber); font-size:11.5px; font-weight:700;">Building Roof Suction & Storm Loads</strong>
+          <div class="domain-card">
+            <div class="card-header-row">
+              <strong class="domain-card-title text-amber">Building Roof Suction & Storm Loads</strong>
             </div>
-            <p style="font-size:10.5px; color:var(--text-muted); margin-top:4px;">
+            <p class="stat-description mt-xs">
               Scales measured wake suction (negative C<sub>p</sub>) to severe storm conditions:
             </p>
-            <table style="width:100%; margin-top:8px; font-size:11px; border-collapse:collapse;">
+            <table class="data-table">
               <thead>
-                <tr style="border-bottom:1px solid var(--border-subtle); color:var(--text-muted); text-align:left;">
-                  <th style="padding:3px 2px;">Storm</th>
-                  <th style="padding:3px 2px; text-align:right;">Wind</th>
-                  <th style="padding:3px 2px; text-align:right;">Roof Uplift</th>
+                <tr>
+                  <th>Storm</th>
+                  <th class="col-right">Wind</th>
+                  <th class="col-right">Roof Uplift</th>
                 </tr>
               </thead>
               <tbody id="storm-ratings-tbody">
                 ${this.buildingStormReport ? this.buildingStormReport.ratings.slice(1, 5).map(r => `
-                  <tr style="border-bottom: 1px solid var(--border-subtle);">
-                    <td style="padding: 3px 2px; color: var(--text-main);">${r.ratingName.split('(')[0]}</td>
-                    <td style="padding: 3px 2px; text-align: right; font-family: var(--font-mono); color: var(--text-muted);">${r.stormWindKmh.toFixed(0)} km/h</td>
-                    <td style="padding: 3px 2px; text-align: right; font-family: var(--font-mono); color: ${r.upliftForceN > 0 ? 'var(--accent-amber)' : 'var(--accent-teal)'};">
+                  <tr>
+                    <td>${r.ratingName.split('(')[0]}</td>
+                    <td class="col-right text-muted">${r.stormWindKmh.toFixed(0)} km/h</td>
+                    <td class="col-right ${r.upliftForceN > 0 ? 'text-amber' : 'text-teal'}">
                       ${r.upliftForceN >= 0 ? '+' : ''}${r.upliftForceN.toFixed(0)} N <small>(${r.upliftForceKgf.toFixed(0)} kgf)</small>
                     </td>
                   </tr>
-                `).join('') : '<tr><td colspan="3" style="padding:4px; color:var(--text-muted);">Simulating flow...</td></tr>'}
+                `).join('') : '<tr><td colspan="3" class="text-muted">Simulating flow...</td></tr>'}
               </tbody>
             </table>
           </div>
         `}
 
         <!-- A/B Specimen Comparison -->
-        <div class="domain-card" style="background:var(--bg-card); padding:10px; border-radius:6px; border:1px solid var(--border-subtle); margin-top: 10px;">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <strong style="color:var(--text-main); font-size:11px; letter-spacing:0.3px;">A/B SPECIMEN DELTA</strong>
-            <div style="display:flex; gap:4px; align-items:center;">
-              <button type="button" class="btn-secondary" id="btn-save-baseline" style="padding:3px 8px; font-size:10.5px; font-family:var(--font-mono);">CAPTURE RUN A</button>
-              <button type="button" class="btn-secondary" id="btn-clear-baseline" style="padding:3px 8px; font-size:10.5px; color:var(--accent-red); font-family:var(--font-mono); display:${this.abComparison ? 'inline-block' : 'none'};">CLEAR</button>
+        <div class="domain-card mt-lg">
+          <div class="card-header-row">
+            <strong class="domain-card-subtitle">A/B SPECIMEN DELTA</strong>
+            <div class="flex-align-center gap-xs">
+              <button type="button" class="btn-secondary btn-action-sm" id="btn-save-baseline">CAPTURE RUN A</button>
+              <button type="button" class="btn-secondary btn-action-sm text-red ${this.abComparison ? '' : 'hidden'}" id="btn-clear-baseline">CLEAR</button>
             </div>
           </div>
           <div id="ab-comparison-content">
             ${this.abComparison ? `
-              <div style="background:var(--bg-card-subtle); padding:8px 10px; border-radius:3px; border:1px solid var(--border-subtle); margin-top:8px;">
-                <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:3px;">
-                  <span style="color:var(--text-muted);">Run A (Baseline):</span>
-                  <strong style="color:var(--text-main); font-family:var(--font-mono);">${this.abComparison.baseline.specimenName} · Cd ${this.abComparison.baseline.cd.toFixed(3)}</strong>
+              <div class="card-inner-box">
+                <div class="stat-row">
+                  <span class="stat-label">Run A (Baseline):</span>
+                  <strong class="stat-value">${this.abComparison.baseline.specimenName} · Cd ${this.abComparison.baseline.cd.toFixed(3)}</strong>
                 </div>
-                <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:6px;">
-                  <span style="color:var(--text-muted);">Run B (Live):</span>
-                  <strong style="color:var(--accent-orange); font-family:var(--font-mono);">${this.abComparison.live.specimenName} · Cd ${this.abComparison.live.cd.toFixed(3)}</strong>
+                <div class="stat-row mb-sm">
+                  <span class="stat-label">Run B (Live):</span>
+                  <strong class="stat-value text-orange">${this.abComparison.live.specimenName} · Cd ${this.abComparison.live.cd.toFixed(3)}</strong>
                 </div>
-                <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                  <span class="${this.abComparison.isDragReduced ? 'badge-ok' : 'badge-warn'}" style="font-size:10.5px;">
+                <div class="flex-align-center gap-sm flex-wrap">
+                  <span class="${this.abComparison.isDragReduced ? 'badge-ok' : 'badge-warn'}">
                     ΔCd ${this.abComparison.deltaCd >= 0 ? '+' : ''}${this.abComparison.deltaCd.toFixed(3)} (${this.abComparison.percentDeltaCd >= 0 ? '+' : ''}${this.abComparison.percentDeltaCd.toFixed(1)}%)
                   </span>
-                  <span class="badge-accent" style="font-size:10.5px;">
+                  <span class="badge-neutral">
                     ΔLift ${this.abComparison.deltaLiftForceN >= 0 ? '+' : ''}${this.abComparison.deltaLiftForceN.toFixed(1)} N
                   </span>
                 </div>
               </div>
             ` : `
-              <p style="font-size:10.5px; color:var(--text-muted); margin-top:6px;">
+              <p class="stat-description">
                 Click <strong>Capture Run A</strong> to freeze reference forces, then modify shape, scale, or orientation to measure live aerodynamic deltas.
               </p>
             `}
@@ -479,16 +479,16 @@ export class ControlPanelUI {
         </div>
 
         <!-- Telemetry & Report Export -->
-        <div style="margin-top: 12px;">
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px;">
-            <button type="button" class="btn-secondary" id="btn-export-csv" style="font-weight:600; font-size:11px; letter-spacing:0.3px;">
+        <div class="mt-xl">
+          <div class="btn-row-2">
+            <button type="button" class="btn-secondary btn-export" id="btn-export-csv">
               EXPORT CSV
             </button>
-            <button type="button" class="btn-secondary" id="btn-export-json" style="font-weight:600; font-size:11px; letter-spacing:0.3px;">
+            <button type="button" class="btn-secondary btn-export" id="btn-export-json">
               EXPORT JSON
             </button>
           </div>
-          <button type="button" class="btn-secondary" id="btn-snapshot-png" style="width:100%; margin-top:6px; font-weight:600; font-size:11px; letter-spacing:0.3px;">
+          <button type="button" class="btn-secondary btn-export btn-full mt-sm" id="btn-snapshot-png">
             CAPTURE VIEWPORT (PNG)
           </button>
         </div>

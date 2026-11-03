@@ -118,9 +118,9 @@ export class TelemetryHudUI {
     this.container.innerHTML = `
       <div class="telemetry-card">
         <div class="card-header">
-          <div style="display:flex; align-items:center; gap:8px;">
+          <div class="card-header-left">
             <span class="card-title">AERODYNAMIC FORCES (MOMENTUM EXCHANGE)</span>
-            ${this.groundPlaneEnabled ? '<span class="badge-neutral" style="font-size:9.5px; padding:2px 6px;">GROUND ABL</span>' : '<span class="badge-accent" style="font-size:9.5px; padding:2px 6px;">FREESTREAM</span>'}
+            ${this.groundPlaneEnabled ? '<span class="badge-neutral">GROUND ABL</span>' : '<span class="badge-accent">FREESTREAM</span>'}
           </div>
           ${blockageWarning}
         </div>

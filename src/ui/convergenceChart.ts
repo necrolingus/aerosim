@@ -44,8 +44,7 @@ export class ConvergenceChartUI {
       this.isRunningBenchmarks = true;
       btn.textContent = '⏳ Running Suite...';
       btn.disabled = true;
-      btn.style.opacity = '0.6';
-      setTimeout(() => {
+            setTimeout(() => {
         this.callbacks.onRunBenchmarks();
       }, 50);
     });
@@ -59,15 +58,15 @@ export class ConvergenceChartUI {
     drawer.innerHTML = `
       <div class="benchmark-progress-box">
         <div class="bench-header">
-          <strong style="display:flex; align-items:center; gap:6px;">
+          <strong class="bench-header-title">
             <span class="badge-accent">BENCHMARK</span> Deep Physics Validation Suite (${currentIndex}/${totalModels})
           </strong>
         </div>
         <div class="benchmark-progress-notice">
           Simulating 4 independent wind tunnels on CPU. High processor utilization is expected while computing Navier-Stokes momentum exchange.
         </div>
-        <div style="font-size:11px; font-weight:600; color:var(--text-main); margin-top:2px;">
-          Active: <span style="color:var(--accent-orange); font-family:var(--font-mono);">${currentModel}</span>
+        <div class="bench-active-model">
+          Active: <span class="text-orange text-mono">${currentModel}</span>
         </div>
         <div class="benchmark-progress-bar-bg">
           <div class="benchmark-progress-bar-fill" style="width: ${percent}%;"></div>
@@ -82,8 +81,7 @@ export class ConvergenceChartUI {
     if (btn) {
       btn.textContent = 'RE-RUN BENCHMARKS';
       btn.disabled = false;
-      btn.style.opacity = '1.0';
-    }
+          }
 
     const drawer = this.container.querySelector<HTMLElement>('#benchmark-results-drawer');
     if (!drawer) return;

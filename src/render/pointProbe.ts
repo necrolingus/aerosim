@@ -358,7 +358,6 @@ export class PointProbeTool {
   };
 
   private renderTooltip(mouseX: number, mouseY: number, r: ProbeReadout): void {
-    const cpColor = r.pressureCoeffCp >= 0 ? '#ef4444' : '#38bdf8';
     const statusTag = r.isInsideSolid
       ? `<span class="probe-tag tag-solid">SOLID SURFACE</span>`
       : `<span class="probe-tag tag-fluid">FLUID DOMAIN</span>`;
@@ -373,8 +372,8 @@ export class PointProbeTool {
         <div class="probe-cell"><span class="lbl">Cell [X,Y,Z]:</span> <span class="val">[${r.latticeCell.ix}, ${r.latticeCell.iy}, ${r.latticeCell.iz}]</span></div>
         <div class="probe-cell"><span class="lbl">Speed:</span> <span class="val highlight">${r.speedMps.toFixed(1)} m/s <span class="sub">(${r.speedMph.toFixed(0)} mph)</span></span></div>
         <div class="probe-cell"><span class="lbl">Velocity (U):</span> <span class="val">[${r.velocityMps.ux.toFixed(1)}, ${r.velocityMps.uy.toFixed(1)}, ${r.velocityMps.uz.toFixed(1)}] m/s</span></div>
-        <div class="probe-cell"><span class="lbl">Gauge Press (Δp):</span> <span class="val" style="color: ${cpColor}">${r.gaugePressurePa >= 0 ? '+' : ''}${r.gaugePressurePa.toFixed(1)} Pa</span></div>
-        <div class="probe-cell"><span class="lbl">Pressure Coeff (Cp):</span> <span class="val" style="color: ${cpColor}; font-weight: 700;">${r.pressureCoeffCp >= 0 ? '+' : ''}${r.pressureCoeffCp.toFixed(2)}</span></div>
+        <div class="probe-cell"><span class="lbl">Gauge Press (Δp):</span> <span class="val ${r.pressureCoeffCp >= 0 ? 'probe-val-positive' : 'probe-val-negative'}">${r.gaugePressurePa >= 0 ? '+' : ''}${r.gaugePressurePa.toFixed(1)} Pa</span></div>
+        <div class="probe-cell"><span class="lbl">Pressure Coeff (Cp):</span> <span class="val ${r.pressureCoeffCp >= 0 ? 'probe-val-positive' : 'probe-val-negative'}">${r.pressureCoeffCp >= 0 ? '+' : ''}${r.pressureCoeffCp.toFixed(2)}</span></div>
       </div>
     `;
 
